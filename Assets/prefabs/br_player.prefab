@@ -20,7 +20,7 @@
         "__guid": "531914b3-8229-4718-ba00-c6dab32ea5df",
         "__enabled": true,
         "Flags": 0,
-        "AccelerationTime": 0,
+        "AccelerationTime": 0.6,
         "AimStrengthBody": 1,
         "AimStrengthEyes": 1,
         "AimStrengthHead": 1,
@@ -42,7 +42,7 @@
           "_type": "gameobject",
           "go": "24908e31-14e1-4a7f-9fae-2d77f4d10837"
         },
-        "DeaccelerationTime": 0,
+        "DeaccelerationTime": 0.4,
         "DuckedHeight": 36,
         "DuckedSpeed": 70,
         "EnableFootstepSounds": true,
@@ -74,7 +74,7 @@
         "RotationAngleLimit": 45,
         "RotationSpeed": 1,
         "RunByDefault": false,
-        "RunSpeed": 320,
+        "RunSpeed": 315,
         "ShowColliderComponents": false,
         "ShowRigidbodyComponent": false,
         "ThirdPerson": true,
@@ -85,7 +85,7 @@
         "UseFovFromPreferences": false,
         "UseInputControls": true,
         "UseLookControls": true,
-        "WalkSpeed": 110
+        "WalkSpeed": 115
       },
       {
         "__type": "Sandbox.Rigidbody",
@@ -197,13 +197,26 @@
         "__guid": "526bc1a0-34c7-4435-9220-1882e1e4f5c4",
         "__enabled": true,
         "Flags": 0,
-        "BaseMaxHealth": 100,
+        "BaseMaxHealth": 900,
+        "BleedLuckForwardOffset": 18,
+        "BleedLuckMinAlpha": 0.65,
+        "BleedLuckPulseScale": 0.22,
+        "BleedLuckPulseSpeed": 5,
+        "BleedLuckShadowColor": "1,0,0,1",
+        "BleedLuckShadowEnabled": true,
+        "BleedLuckShadowOffset": "0,0",
+        "BleedLuckShadowScale": 9.82002,
+        "BleedLuckSize": "18,18",
+        "BleedLuckTexturePath": "temp/BleedLuck.png",
+        "BleedLuckWorldOffset": "0,0,52",
         "BodyRenderer": {
           "_type": "component",
           "component_id": "372ddbe5-726f-411e-895f-d7ea4a6eff52",
           "go": "fb6b5b27-a0a7-4f28-bec3-d082de3a7851",
           "component_type": "SkinnedModelRenderer"
         },
+        "CountsForMatch": true,
+        "DebugHealthDelta": 10,
         "DefaultDeathImpulse": 280,
         "OnComponentDestroy": null,
         "OnComponentDisabled": null,
@@ -242,7 +255,7 @@
         "__guid": "93a788e8-9797-47fb-a2b5-b5bbcd68850b",
         "__enabled": true,
         "Flags": 0,
-        "FieldOfView": 70,
+        "FieldOfView": 90,
         "MaxFieldOfView": 120,
         "MinFieldOfView": 45,
         "OnComponentDestroy": null,
@@ -252,108 +265,6 @@
         "OnComponentStart": null,
         "OnComponentUpdate": null,
         "TargetCamera": null
-      },
-      {
-        "__type": "Sandbox.CardAttack",
-        "__guid": "e7a9636d-a5ed-4cff-ad9d-001249acd246",
-        "__enabled": true,
-        "Flags": 0,
-        "CardModel": "models/card.vmdl",
-        "CardVisualSpeed": 1800,
-        "Cooldown": 0.65,
-        "Damage": 18,
-        "OnComponentDestroy": null,
-        "OnComponentDisabled": null,
-        "OnComponentEnabled": null,
-        "OnComponentFixedUpdate": null,
-        "OnComponentStart": null,
-        "OnComponentUpdate": null,
-        "RagdollImpulse": 180,
-        "RagdollUpwardImpulse": 45,
-        "Range": 900,
-        "SpreadDegrees": 2,
-        "VerticalCardSpacing": 2
-      },
-      {
-        "__type": "Sandbox.CardThrowVisual",
-        "__guid": "8cb85f55-4f63-42d3-95da-30a1b08ce161",
-        "__enabled": true,
-        "Flags": 0,
-        "BodyRenderer": {
-          "_type": "component",
-          "component_id": "372ddbe5-726f-411e-895f-d7ea4a6eff52",
-          "go": "fb6b5b27-a0a7-4f28-bec3-d082de3a7851",
-          "component_type": "SkinnedModelRenderer"
-        },
-        "CardLocalAngles": "90,0,0",
-        "CardLocalOffset": "0,0,0",
-        "CardLocalScale": "1,1,1",
-        "CardModel": null,
-        "FallbackHandBoneName": "hand_R",
-        "HideCardsOnThrowSeconds": 0.22,
-        "IdleHandedness": "Right",
-        "IdleHoldType": "Pistol",
-        "OnComponentDestroy": null,
-        "OnComponentDisabled": null,
-        "OnComponentEnabled": null,
-        "OnComponentFixedUpdate": null,
-        "OnComponentStart": null,
-        "OnComponentUpdate": null,
-        "PunchAttackValue": 1,
-        "ThrowHandedness": "Right",
-        "ThrowHoldType": "Punch",
-        "WeaponBoneName": "hold_R"
-      },
-      {
-        "__type": "Sandbox.ClubAttack",
-        "__guid": "1831c7c6-bbeb-4d51-8690-9519ef35e409",
-        "__enabled": true,
-        "Flags": 0,
-        "ArcDegrees": 80,
-        "AttackGizmoDuration": 0.22,
-        "AttackGizmoHeight": 8,
-        "Cooldown": 0.9,
-        "Damage": 35,
-        "OnComponentDestroy": null,
-        "OnComponentDisabled": null,
-        "OnComponentEnabled": null,
-        "OnComponentFixedUpdate": null,
-        "OnComponentStart": null,
-        "OnComponentUpdate": null,
-        "RagdollImpulse": 520,
-        "RagdollUpwardImpulse": 120,
-        "Range": 130,
-        "ShowAttackGizmo": true,
-        "ShowAttackGizmoOnSwing": true
-      },
-      {
-        "__type": "Sandbox.ClubWeaponIk",
-        "__guid": "532a326f-c8b3-451b-9fd8-8350355e4b77",
-        "__enabled": true,
-        "Flags": 0,
-        "BodyRenderer": {
-          "_type": "component",
-          "component_id": "372ddbe5-726f-411e-895f-d7ea4a6eff52",
-          "go": "fb6b5b27-a0a7-4f28-bec3-d082de3a7851",
-          "component_type": "SkinnedModelRenderer"
-        },
-        "ClubLocalAngles": "0,0,0",
-        "ClubLocalOffset": "0,0,0",
-        "ClubModel": null,
-        "ClubObject": {
-          "_type": "gameobject",
-          "go": "bb69c2bc-ca17-4e5f-811a-d38f1fd1b5ff"
-        },
-        "FallbackHandBoneName": "hand_R",
-        "LeftGripLocalOffset": "0,0,22",
-        "OnComponentDestroy": null,
-        "OnComponentDisabled": null,
-        "OnComponentEnabled": null,
-        "OnComponentFixedUpdate": null,
-        "OnComponentStart": null,
-        "OnComponentUpdate": null,
-        "SwingAttackValue": 1,
-        "WeaponBoneName": "hold_R"
       }
     ],
     "Children": [
@@ -2176,7 +2087,7 @@
             ]
           },
           {
-            "__guid": "baa6ef75-f29f-4e5b-a4a8-3d77382bf2f0",
+            "__guid": "48e748fb-2845-4d25-8de1-525a60223548",
             "__version": 2,
             "Flags": 0,
             "Name": "Clothing - bag_v2",
@@ -2193,7 +2104,7 @@
             "Components": [
               {
                 "__type": "Sandbox.SkinnedModelRenderer",
-                "__guid": "bb2c7aa2-6715-45c6-ba8d-1612482fcadf",
+                "__guid": "360e0c03-a4e4-4ee6-87e6-acd39cfb3e54",
                 "__enabled": true,
                 "Flags": 0,
                 "AnimationGraph": null,
@@ -2245,7 +2156,7 @@
             "Children": []
           },
           {
-            "__guid": "8b513469-527c-45d4-8533-6e77f0edba2a",
+            "__guid": "5b493795-490b-40e0-82b5-89ba721fdf53",
             "__version": 2,
             "Flags": 0,
             "Name": "Clothing - qa_team_tshirt",
@@ -2262,7 +2173,7 @@
             "Components": [
               {
                 "__type": "Sandbox.SkinnedModelRenderer",
-                "__guid": "f87b78d0-fe0f-40e7-8491-dd00f63457a3",
+                "__guid": "d605a85d-9d5c-48de-a66c-9368f357edd4",
                 "__enabled": true,
                 "Flags": 0,
                 "AnimationGraph": null,
@@ -2314,7 +2225,7 @@
             "Children": []
           },
           {
-            "__guid": "43ee57e1-ffa1-46cf-8ab0-a1dc05fee6b0",
+            "__guid": "cca18200-a5fd-458a-8f37-f9dd1dfb0885",
             "__version": 2,
             "Flags": 0,
             "Name": "Clothing - rubber_gloves_black",
@@ -2331,7 +2242,7 @@
             "Components": [
               {
                 "__type": "Sandbox.SkinnedModelRenderer",
-                "__guid": "d79840d2-169d-4d6a-8181-a28f77569c54",
+                "__guid": "743f71f2-de5f-41fb-97f1-bd225dee7483",
                 "__enabled": true,
                 "Flags": 0,
                 "AnimationGraph": null,
@@ -2383,7 +2294,7 @@
             "Children": []
           },
           {
-            "__guid": "c2ba17fd-868e-4585-8120-155048bc7a96",
+            "__guid": "14b8485f-70ab-473b-81b5-b9f54af74fca",
             "__version": 2,
             "Flags": 0,
             "Name": "Clothing - headphones",
@@ -2400,7 +2311,7 @@
             "Components": [
               {
                 "__type": "Sandbox.SkinnedModelRenderer",
-                "__guid": "22f6a5a3-d741-4494-bc3d-9acf8df69cbe",
+                "__guid": "047e27f5-4edc-436c-8e12-b9da9d8daa33",
                 "__enabled": true,
                 "Flags": 0,
                 "AnimationGraph": null,
@@ -2452,7 +2363,7 @@
             "Children": []
           },
           {
-            "__guid": "9bae0565-cb09-442a-b924-ae7adda04e1d",
+            "__guid": "c37e8976-4d58-41f9-b12f-20d0685f0164",
             "__version": 2,
             "Flags": 0,
             "Name": "Clothing - clogs_and_socks",
@@ -2469,7 +2380,7 @@
             "Components": [
               {
                 "__type": "Sandbox.SkinnedModelRenderer",
-                "__guid": "0f47f9ad-b7a0-40ca-b51c-2714ed5c59bc",
+                "__guid": "891a84ee-6f0f-4736-8afe-c82c5298ac4c",
                 "__enabled": true,
                 "Flags": 0,
                 "AnimationGraph": null,
@@ -2521,7 +2432,7 @@
             "Children": []
           },
           {
-            "__guid": "79a293a0-6ce9-4ca3-88d8-840b97f4c1c0",
+            "__guid": "573964db-4bba-4a3c-aaf7-f41490d78fa5",
             "__version": 2,
             "Flags": 0,
             "Name": "Clothing - loose_jeans",
@@ -2538,7 +2449,7 @@
             "Components": [
               {
                 "__type": "Sandbox.SkinnedModelRenderer",
-                "__guid": "c91e5cf8-ad3e-4428-b086-fa8d1e089536",
+                "__guid": "60af359f-82f9-408a-b716-5ce5aa3bf39c",
                 "__enabled": true,
                 "Flags": 0,
                 "AnimationGraph": null,
@@ -2590,7 +2501,7 @@
             "Children": []
           },
           {
-            "__guid": "50407945-b8e4-4366-bad8-444f38470e06",
+            "__guid": "3b2a553f-2898-47d0-b192-7f369f4e4eaa",
             "__version": 2,
             "Flags": 0,
             "Name": "Clothing - modern_watch",
@@ -2607,7 +2518,7 @@
             "Components": [
               {
                 "__type": "Sandbox.SkinnedModelRenderer",
-                "__guid": "d63020a4-71d7-446c-ba65-0c655395a2f4",
+                "__guid": "26b793cd-f961-4c0e-810f-625df59f724c",
                 "__enabled": true,
                 "Flags": 0,
                 "AnimationGraph": null,

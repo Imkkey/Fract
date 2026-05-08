@@ -48,12 +48,12 @@ public sealed class BattleRoyaleMatch : Component
 	void UpdateAliveState()
 	{
 		var alive = Scene.GetAllComponents<PlayerCombat>()
-			.Where( player => player.IsValid() && !player.IsDead )
+			.Where( player => player.IsValid() && player.CountsForMatch && !player.IsDead )
 			.ToArray();
 
 		AlivePlayers = alive.Length;
 
-		if ( alive.Length == 1 && Scene.GetAllComponents<PlayerCombat>().Count() > 1 )
+		if ( alive.Length == 1 && Scene.GetAllComponents<PlayerCombat>().Count( player => player.IsValid() && player.CountsForMatch ) > 1 )
 		{
 			MatchFinished = true;
 			WinnerName = alive[0].GameObject.Network.Owner?.DisplayName ?? alive[0].GameObject.Name;

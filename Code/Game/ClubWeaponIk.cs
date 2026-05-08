@@ -1,3 +1,5 @@
+using System;
+
 namespace Sandbox;
 
 [Title( "Club Weapon IK" )]
@@ -12,13 +14,18 @@ public sealed class ClubWeaponIk : Component
 	[Property] public Vector3 ClubLocalOffset { get; set; } = Vector3.Zero;
 	[Property] public Angles ClubLocalAngles { get; set; } = new( 0f, 0f, 0f );
 	[Property] public Vector3 LeftGripLocalOffset { get; set; } = new( 0f, 0f, 22f );
-	[Property] public float SwingAttackValue { get; set; } = 1f;
+	[Property] public float SwingAttackValue { get; set; } = 3f;
+	[Property, Group( "Visual Swing" )] public float SwingVisualDuration { get; set; } = 0.7f;
+	[Property, Group( "Visual Swing" )] public Vector3 SwingVisualOffset { get; set; } = new( 8f, -5f, 2f );
+	[Property, Group( "Visual Swing" )] public Angles SwingVisualStartAngles { get; set; } = new( -25f, -35f, 18f );
+	[Property, Group( "Visual Swing" )] public Angles SwingVisualEndAngles { get; set; } = new( 22f, 42f, -12f );
 
 	PlayerCharacter Character { get; set; }
 	PlayerCombat Combat { get; set; }
 	GameObject AttachedBoneObject { get; set; }
 	bool WasActive { get; set; }
 	bool OwnsClubObject { get; set; }
+	TimeSince TimeSinceSwingVisual { get; set; } = 999f;
 
 	protected override void OnStart()
 	{
@@ -153,8 +160,9 @@ public sealed class ClubWeaponIk : Component
 		if ( !ClubObject.IsValid() )
 			return;
 
-		ClubObject.LocalPosition = ClubLocalOffset;
-		ClubObject.LocalRotation = ClubLocalAngles.ToRotation();
+		var swingAmount = GetSwingVisualAmount();
+		ClubObject.LocalPosition = ClubLocalOffset + SwingVisualOffset * swingAmount;
+		ClubObject.LocalRotation = ClubLocalAngles.ToRotation() * GetSwingVisualRotation();
 	}
 
 	void ApplyLeftHandIk()
@@ -174,6 +182,7 @@ public sealed class ClubWeaponIk : Component
 		ApplyHoldAnimation();
 		BodyRenderer.Set( "holdtype_attack", SwingAttackValue );
 		BodyRenderer.Set( "b_attack", true );
+		TimeSinceSwingVisual = 0f;
 	}
 
 	void ApplyHoldAnimation()
@@ -198,6 +207,28 @@ public sealed class ClubWeaponIk : Component
 		transform.Rotation = rotation;
 		transform.Scale = Vector3.One;
 		return transform;
+	}
+
+	float GetSwingVisualAmount()
+	{
+		if ( SwingVisualDuration <= 0f || TimeSinceSwingVisual >= SwingVisualDuration )
+			return 0f;
+
+		var progress = (TimeSinceSwingVisual / SwingVisualDuration).Clamp( 0f, 1f );
+		return (float)Math.Sin( progress * Math.PI );
+	}
+
+	Rotation GetSwingVisualRotation()
+	{
+		if ( SwingVisualDuration <= 0f || TimeSinceSwingVisual >= SwingVisualDuration )
+			return Rotation.Identity;
+
+		var progress = (TimeSinceSwingVisual / SwingVisualDuration).Clamp( 0f, 1f );
+		var easedProgress = progress * progress * (3f - 2f * progress);
+		var pitch = SwingVisualStartAngles.pitch + (SwingVisualEndAngles.pitch - SwingVisualStartAngles.pitch) * easedProgress;
+		var yaw = SwingVisualStartAngles.yaw + (SwingVisualEndAngles.yaw - SwingVisualStartAngles.yaw) * easedProgress;
+		var roll = SwingVisualStartAngles.roll + (SwingVisualEndAngles.roll - SwingVisualStartAngles.roll) * easedProgress;
+		return new Angles( pitch, yaw, roll ).ToRotation();
 	}
 
 	void SetVisible( bool visible )

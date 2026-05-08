@@ -1,3 +1,5 @@
+using System;
+
 namespace Sandbox;
 
 [Title( "Card Throw Visual" )]
@@ -17,12 +19,17 @@ public sealed class CardThrowVisual : Component
 	[Property] public Citizen.CitizenAnimationHelper.HoldTypes ThrowHoldType { get; set; } = Citizen.CitizenAnimationHelper.HoldTypes.Punch;
 	[Property] public Citizen.CitizenAnimationHelper.Hand ThrowHandedness { get; set; } = Citizen.CitizenAnimationHelper.Hand.Right;
 	[Property] public float PunchAttackValue { get; set; } = 1f;
+	[Property, Group( "Visual Throw" )] public float ThrowVisualDuration { get; set; } = 0.16f;
+	[Property, Group( "Visual Throw" )] public Vector3 ThrowVisualOffset { get; set; } = new( 9f, -3f, 0f );
+	[Property, Group( "Visual Throw" )] public Angles ThrowVisualStartAngles { get; set; } = new( -12f, -18f, 8f );
+	[Property, Group( "Visual Throw" )] public Angles ThrowVisualEndAngles { get; set; } = new( 8f, 20f, -5f );
 
 	PlayerCharacter Character { get; set; }
 	PlayerCombat Combat { get; set; }
 	GameObject CardObject { get; set; }
 	GameObject AttachedBoneObject { get; set; }
 	TimeUntil ShowCardsTime { get; set; }
+	TimeSince TimeSinceThrowVisual { get; set; } = 999f;
 
 	protected override void OnStart()
 	{
@@ -77,6 +84,7 @@ public sealed class CardThrowVisual : Component
 		SetCardsVisible( false );
 		BodyRenderer.Set( "holdtype_attack", PunchAttackValue );
 		BodyRenderer.Set( "b_attack", true );
+		TimeSinceThrowVisual = 0f;
 	}
 
 	void EnsureCardObject()
@@ -138,9 +146,32 @@ public sealed class CardThrowVisual : Component
 		if ( !CardObject.IsValid() )
 			return;
 
-		CardObject.LocalPosition = CardLocalOffset;
-		CardObject.LocalRotation = CardLocalAngles.ToRotation();
+		var throwAmount = GetThrowVisualAmount();
+		CardObject.LocalPosition = CardLocalOffset + ThrowVisualOffset * throwAmount;
+		CardObject.LocalRotation = CardLocalAngles.ToRotation() * GetThrowVisualRotation();
 		CardObject.LocalScale = CardLocalScale;
+	}
+
+	float GetThrowVisualAmount()
+	{
+		if ( ThrowVisualDuration <= 0f || TimeSinceThrowVisual >= ThrowVisualDuration )
+			return 0f;
+
+		var progress = (TimeSinceThrowVisual / ThrowVisualDuration).Clamp( 0f, 1f );
+		return (float)Math.Sin( progress * Math.PI );
+	}
+
+	Rotation GetThrowVisualRotation()
+	{
+		if ( ThrowVisualDuration <= 0f || TimeSinceThrowVisual >= ThrowVisualDuration )
+			return Rotation.Identity;
+
+		var progress = (TimeSinceThrowVisual / ThrowVisualDuration).Clamp( 0f, 1f );
+		var easedProgress = progress * progress * (3f - 2f * progress);
+		var pitch = ThrowVisualStartAngles.pitch + (ThrowVisualEndAngles.pitch - ThrowVisualStartAngles.pitch) * easedProgress;
+		var yaw = ThrowVisualStartAngles.yaw + (ThrowVisualEndAngles.yaw - ThrowVisualStartAngles.yaw) * easedProgress;
+		var roll = ThrowVisualStartAngles.roll + (ThrowVisualEndAngles.roll - ThrowVisualStartAngles.roll) * easedProgress;
+		return new Angles( pitch, yaw, roll ).ToRotation();
 	}
 
 	void ApplyHoldAnimation( Citizen.CitizenAnimationHelper.HoldTypes holdType, Citizen.CitizenAnimationHelper.Hand handedness )
@@ -163,7 +194,7 @@ public sealed class CardThrowVisual : Component
 	bool ShouldUseCardPose()
 	{
 		return Character.IsValid()
-			&& Character.CurrentCharacter == CharacterId.CardThrower
+			&& Character.CurrentCharacter == CharacterId.Cardveil
 			&& (!Combat.IsValid() || !Combat.IsDead);
 	}
 

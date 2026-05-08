@@ -6,15 +6,11 @@ public sealed class PlayerAttackController : Component
 {
 	PlayerCombat Combat { get; set; }
 	PlayerCharacter Character { get; set; }
-	CardAttack CardAttack { get; set; }
-	ClubAttack ClubAttack { get; set; }
 
 	protected override void OnStart()
 	{
 		Combat = GetComponent<PlayerCombat>();
 		Character = GetComponent<PlayerCharacter>();
-		CardAttack = GetComponent<CardAttack>();
-		ClubAttack = GetComponent<ClubAttack>();
 	}
 
 	protected override void OnUpdate()
@@ -28,7 +24,7 @@ public sealed class PlayerAttackController : Component
 			{
 				if ( Input.Pressed( "Slot1" ) )
 				{
-					Character.RequestSelectCharacter( CharacterId.CardThrower );
+					Character.RequestSelectCharacter( CharacterId.Cardveil );
 				}
 				else if ( Input.Pressed( "Slot2" ) )
 				{
@@ -45,13 +41,15 @@ public sealed class PlayerAttackController : Component
 		if ( !Input.Pressed( "Attack1" ) )
 			return;
 
+		Character.EnsureCharacterComponents();
+
 		switch ( Character.CurrentCharacter )
 		{
-			case CharacterId.CardThrower:
-				CardAttack?.TryAttack();
+			case CharacterId.Cardveil:
+				GetComponent<CardAttack>()?.TryAttack();
 				break;
 			case CharacterId.ClubBrawler:
-				ClubAttack?.TryAttack();
+				GetComponent<ClubAttack>()?.TryAttack();
 				break;
 		}
 	}

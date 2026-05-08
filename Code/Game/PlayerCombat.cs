@@ -9,16 +9,38 @@ public sealed class PlayerCombat : Component
 {
 	const string DeadRagdollTag = "deadplayer";
 	const string PlayerTag = "player";
+	const float DefaultMoveSpeedMultiplier = 1f;
 
 	[Property] public float BaseMaxHealth { get; set; } = 100f;
+	[Property] public bool CountsForMatch { get; set; } = true;
 	[Property] public SkinnedModelRenderer BodyRenderer { get; set; }
 	[Property] public float DefaultDeathImpulse { get; set; } = 280f;
 	[Property] public float UpwardDeathImpulse { get; set; } = 80f;
+	[Property, Group( "Bleed Luck" )] public string BleedLuckTexturePath { get; set; } = "temp/BleedLuck.png";
+	[Property, Group( "Bleed Luck" )] public Vector3 BleedLuckWorldOffset { get; set; } = new( 0f, 0f, 48f );
+	[Property, Group( "Bleed Luck" )] public float BleedLuckForwardOffset { get; set; } = 0f;
+	[Property, Group( "Bleed Luck" )] public Vector2 BleedLuckSize { get; set; } = new( 18f, 18f );
+	[Property, Group( "Bleed Luck" )] public float BleedLuckPulseSpeed { get; set; } = 5f;
+	[Property, Group( "Bleed Luck" )] public float BleedLuckPulseScale { get; set; } = 0.22f;
+	[Property, Group( "Bleed Luck" )] public float BleedLuckMinAlpha { get; set; } = 0.65f;
+	[Property, Group( "Bleed Luck" )] public bool BleedLuckShadowEnabled { get; set; } = true;
+	[Property, Group( "Bleed Luck" )] public Vector2 BleedLuckShadowOffset { get; set; } = new( 2.5f, -2.5f );
+	[Property, Group( "Bleed Luck" )] public float BleedLuckShadowScale { get; set; } = 1.08f;
+	[Property, Group( "Bleed Luck" )] public Color BleedLuckShadowColor { get; set; } = new( 0f, 0f, 0f, 0.72f );
+	[Property, Group( "Bleed Luck" )] public int BleedLuckMaxStacks { get; set; } = 5;
+	[Property, Group( "Bleed Luck" )] public float BleedLuckStackDuration { get; set; } = 6f;
+	[Property, Group( "Bleed Luck" )] public float BleedLuckDamageBonusPerStack { get; set; } = 0.04f;
+	[Property, Group( "Bleed Luck" )] public float LuckyCutBonusDamage { get; set; } = 80f;
+	[Property, Group( "Bleed Luck" )] public float LuckyCutSlowMultiplier { get; set; } = 0.75f;
+	[Property, Group( "Bleed Luck" )] public float LuckyCutSlowDuration { get; set; } = 1f;
 	[Property, Group( "Debug" )] public float DebugHealthDelta { get; set; } = 10f;
 
 	[Sync( Flags = SyncFlags.FromHost )] public float MaxHealth { get; private set; }
 	[Sync( Flags = SyncFlags.FromHost )] public float Health { get; private set; }
 	[Sync( Flags = SyncFlags.FromHost )] public bool IsDead { get; private set; }
+	[Sync( Flags = SyncFlags.FromHost )] public bool HasBleedLuck { get; private set; }
+	[Sync( Flags = SyncFlags.FromHost )] public int BleedLuckStacks { get; private set; }
+	[Sync( Flags = SyncFlags.FromHost )] public float MoveSpeedMultiplier { get; private set; } = DefaultMoveSpeedMultiplier;
 	[Sync( Flags = SyncFlags.FromHost )] public float PhysicalDamageBonusPercent { get; private set; }
 	[Sync( Flags = SyncFlags.FromHost )] public float MagicDamageBonusPercent { get; private set; }
 	[Sync( Flags = SyncFlags.FromHost )] public float CooldownReductionPercent { get; private set; }
@@ -30,11 +52,22 @@ public sealed class PlayerCombat : Component
 	bool DeathRagdollStarted { get; set; }
 	GameObject DeathRagdollObject { get; set; }
 	ModelPhysics DeathRagdollPhysics { get; set; }
+	GameObject BleedLuckMarkerObject { get; set; }
+	SpriteRenderer BleedLuckShadowRenderer { get; set; }
+	SpriteRenderer BleedLuckMarkerRenderer { get; set; }
 	List<ModelRenderer> HiddenLiveRenderers { get; } = new();
+	TimeUntil BleedLuckExpireTime { get; set; }
+	TimeUntil MoveSlowExpireTime { get; set; }
+	PlayerController CachedController { get; set; }
+	float BaseWalkSpeed { get; set; }
+	float BaseRunSpeed { get; set; }
+	float BaseDuckedSpeed { get; set; }
 
 	protected override void OnStart()
 	{
 		BodyRenderer ??= GameObject.Components.Get<SkinnedModelRenderer>( FindMode.EnabledInSelfAndDescendants );
+		CacheBaseMoveSpeeds();
+		EnsureWorldHealthBar();
 		TagGameplayColliders();
 
 		if ( Networking.IsHost )
@@ -64,8 +97,16 @@ public sealed class PlayerCombat : Component
 		PendingRagdollImpulseFrames--;
 	}
 
+	protected override void OnUpdate()
+	{
+		UpdateTimedStatusEffects();
+		ApplyMoveSpeedMultiplier();
+		UpdateBleedLuckMarker();
+	}
+
 	protected override void OnDestroy()
 	{
+		DestroyBleedLuckMarker();
 		DestroyLocalRagdoll();
 	}
 
@@ -74,6 +115,9 @@ public sealed class PlayerCombat : Component
 		MaxHealth = BaseMaxHealth;
 		Health = MaxHealth;
 		IsDead = false;
+		HasBleedLuck = false;
+		BleedLuckStacks = 0;
+		MoveSpeedMultiplier = DefaultMoveSpeedMultiplier;
 		PhysicalDamageBonusPercent = 0f;
 		MagicDamageBonusPercent = 0f;
 		CooldownReductionPercent = 0f;
@@ -133,6 +177,53 @@ public sealed class PlayerCombat : Component
 		}
 	}
 
+	public void ApplyBleedLuckMark()
+	{
+		ApplyBleedLuckStacks( 1 );
+	}
+
+	public void ApplyBleedLuckStacks( int stacks )
+	{
+		if ( !Networking.IsHost || IsDead || stacks <= 0 )
+			return;
+
+		BleedLuckStacks = (BleedLuckStacks + stacks).Clamp( 0, BleedLuckMaxStacks );
+		HasBleedLuck = BleedLuckStacks > 0;
+		BleedLuckExpireTime = BleedLuckStackDuration;
+	}
+
+	public float ApplyCardveilDamageBonus( float damage )
+	{
+		if ( BleedLuckStacks <= 0 )
+			return damage;
+
+		return damage * (1f + BleedLuckStacks * BleedLuckDamageBonusPerStack);
+	}
+
+	public bool TryTriggerLuckyCut( out float bonusDamage )
+	{
+		bonusDamage = 0f;
+
+		if ( !Networking.IsHost || BleedLuckStacks < BleedLuckMaxStacks )
+			return false;
+
+		bonusDamage = LuckyCutBonusDamage;
+		ClearBleedLuck();
+		ApplyMoveSlow( LuckyCutSlowMultiplier, LuckyCutSlowDuration );
+		return true;
+	}
+
+	public float GetSkillDamageWithBleedLuckBonus( float baseDamage, bool consumeMark = true )
+	{
+		if ( !Networking.IsHost || BleedLuckStacks <= 0 )
+			return baseDamage;
+
+		if ( consumeMark )
+			ClearBleedLuck();
+
+		return ApplyCardveilDamageBonus( baseDamage );
+	}
+
 	public void RequestDebugHealthDelta( float delta )
 	{
 		ApplyDebugHealthDelta( delta );
@@ -161,6 +252,9 @@ public sealed class PlayerCombat : Component
 	void Kill( DamageEvent damageEvent )
 	{
 		IsDead = true;
+		HasBleedLuck = false;
+		BleedLuckStacks = 0;
+		MoveSpeedMultiplier = DefaultMoveSpeedMultiplier;
 
 		var hitPosition = damageEvent.HitPosition;
 		var impulse = GetDeathImpulse( damageEvent );
@@ -441,5 +535,172 @@ public sealed class PlayerCombat : Component
 		SetLiveRenderersVisible( true );
 
 		SetGameplayEnabled( true );
+	}
+
+	void UpdateTimedStatusEffects()
+	{
+		if ( !Networking.IsHost )
+			return;
+
+		if ( BleedLuckStacks > 0 && BleedLuckExpireTime <= 0f )
+		{
+			ClearBleedLuck();
+		}
+
+		if ( MoveSpeedMultiplier != DefaultMoveSpeedMultiplier && MoveSlowExpireTime <= 0f )
+		{
+			MoveSpeedMultiplier = DefaultMoveSpeedMultiplier;
+		}
+	}
+
+	void ClearBleedLuck()
+	{
+		BleedLuckStacks = 0;
+		HasBleedLuck = false;
+	}
+
+	void ApplyMoveSlow( float multiplier, float duration )
+	{
+		MoveSpeedMultiplier = multiplier.Clamp( 0.1f, 1f );
+		MoveSlowExpireTime = duration;
+	}
+
+	void CacheBaseMoveSpeeds()
+	{
+		CachedController = GetComponent<PlayerController>();
+		if ( !CachedController.IsValid() )
+			return;
+
+		BaseWalkSpeed = CachedController.WalkSpeed;
+		BaseRunSpeed = CachedController.RunSpeed;
+		BaseDuckedSpeed = CachedController.DuckedSpeed;
+	}
+
+	void ApplyMoveSpeedMultiplier()
+	{
+		if ( !CachedController.IsValid() )
+			return;
+
+		CachedController.WalkSpeed = BaseWalkSpeed * MoveSpeedMultiplier;
+		CachedController.RunSpeed = BaseRunSpeed * MoveSpeedMultiplier;
+		CachedController.DuckedSpeed = BaseDuckedSpeed * MoveSpeedMultiplier;
+	}
+
+	void EnsureWorldHealthBar()
+	{
+		if ( !Components.Get<WorldHealthBar>( FindMode.EverythingInSelf ).IsValid() )
+		{
+			Components.Create<WorldHealthBar>();
+		}
+	}
+
+	void UpdateBleedLuckMarker()
+	{
+		if ( !HasBleedLuck || IsDead )
+		{
+			if ( BleedLuckMarkerObject.IsValid() )
+				BleedLuckMarkerObject.Enabled = false;
+
+			return;
+		}
+
+		EnsureBleedLuckMarker();
+		if ( !BleedLuckMarkerObject.IsValid() )
+			return;
+
+		BleedLuckMarkerObject.Enabled = true;
+		BleedLuckMarkerObject.WorldPosition = WorldPosition + BleedLuckWorldOffset + WorldRotation.Forward * BleedLuckForwardOffset;
+		UpdateBleedLuckShadowPosition();
+		UpdateBleedLuckPulse();
+	}
+
+	void EnsureBleedLuckMarker()
+	{
+		if ( BleedLuckMarkerObject.IsValid() )
+			return;
+
+		var texture = Texture.Load( BleedLuckTexturePath, false );
+		if ( texture is null || !texture.IsValid || texture.IsError )
+			return;
+
+		BleedLuckMarkerObject = new GameObject( false, "Bleed Luck Marker" );
+		BleedLuckMarkerObject.NetworkMode = NetworkMode.Never;
+
+		var shadowObject = new GameObject( BleedLuckMarkerObject, false, "Bleed Luck Shadow" );
+		shadowObject.NetworkMode = NetworkMode.Never;
+
+		BleedLuckShadowRenderer = shadowObject.Components.Create<SpriteRenderer>();
+		BleedLuckShadowRenderer.Sprite = Sprite.FromTexture( texture );
+		BleedLuckShadowRenderer.Size = BleedLuckSize * BleedLuckShadowScale;
+		BleedLuckShadowRenderer.Billboard = SpriteRenderer.BillboardMode.Always;
+		BleedLuckShadowRenderer.Lighting = false;
+		BleedLuckShadowRenderer.Shadows = false;
+		BleedLuckShadowRenderer.DepthFeather = 0f;
+		BleedLuckShadowRenderer.RenderOptions.Overlay = true;
+
+		BleedLuckMarkerRenderer = BleedLuckMarkerObject.Components.Create<SpriteRenderer>();
+		BleedLuckMarkerRenderer.Sprite = Sprite.FromTexture( texture );
+		BleedLuckMarkerRenderer.Size = BleedLuckSize;
+		BleedLuckMarkerRenderer.Billboard = SpriteRenderer.BillboardMode.Always;
+		BleedLuckMarkerRenderer.Lighting = false;
+		BleedLuckMarkerRenderer.Shadows = false;
+		BleedLuckMarkerRenderer.DepthFeather = 0f;
+		BleedLuckMarkerRenderer.RenderOptions.Overlay = true;
+	}
+
+	void UpdateBleedLuckPulse()
+	{
+		if ( !BleedLuckMarkerRenderer.IsValid() )
+			return;
+
+		var pulse = (MathF.Sin( Time.Now * BleedLuckPulseSpeed ) + 1f) * 0.5f;
+		var scale = 1f + BleedLuckPulseScale * pulse;
+		var alpha = BleedLuckMinAlpha + (1f - BleedLuckMinAlpha) * pulse;
+
+		BleedLuckMarkerRenderer.Size = BleedLuckSize * scale;
+		BleedLuckMarkerRenderer.Color = Color.White.WithAlpha( alpha );
+
+		if ( BleedLuckShadowRenderer.IsValid() )
+		{
+			BleedLuckShadowRenderer.Enabled = BleedLuckShadowEnabled;
+			BleedLuckShadowRenderer.Size = BleedLuckSize * BleedLuckShadowScale * scale;
+			BleedLuckShadowRenderer.Color = BleedLuckShadowColor.WithAlpha( BleedLuckShadowColor.a * alpha );
+		}
+	}
+
+	void UpdateBleedLuckShadowPosition()
+	{
+		if ( !BleedLuckShadowRenderer.IsValid() )
+			return;
+
+		var camera = GetMainCamera();
+		var right = camera.IsValid() ? camera.WorldRotation.Right.Normal : Vector3.Right;
+		var up = camera.IsValid() ? camera.WorldRotation.Up.Normal : Vector3.Up;
+		BleedLuckShadowRenderer.WorldPosition = BleedLuckMarkerObject.WorldPosition
+			+ right * BleedLuckShadowOffset.x
+			+ up * BleedLuckShadowOffset.y;
+	}
+
+	CameraComponent GetMainCamera()
+	{
+		foreach ( var camera in Scene.GetAllComponents<CameraComponent>() )
+		{
+			if ( camera.IsValid() && camera.IsMainCamera )
+				return camera;
+		}
+
+		return null;
+	}
+
+	void DestroyBleedLuckMarker()
+	{
+		if ( BleedLuckMarkerObject.IsValid() )
+		{
+			BleedLuckMarkerObject.Destroy();
+		}
+
+		BleedLuckMarkerObject = null;
+		BleedLuckShadowRenderer = null;
+		BleedLuckMarkerRenderer = null;
 	}
 }

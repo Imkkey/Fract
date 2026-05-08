@@ -1,0 +1,48 @@
+@using System
+@using System.Globalization
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Sandbox
+
+<root>
+	@if ( Combat is not null )
+	{
+		<div class="world-player-health-root">
+			<div class="world-player-health">
+				<img class="world-player-health-bg" src="@BackgroundTexturePath" />
+				<div class="world-player-health-fill-mask" style="@HealthFillStyle">
+					<img class="world-player-health-fill" src="@FillTexturePath" />
+				</div>
+				<img class="world-player-health-frame" src="@FrameTexturePath" />
+				<div class="world-player-health-readout">
+					<div class="world-player-health-value">@CurrentHealthText</div>
+				</div>
+			</div>
+		</div>
+	}
+</root>
+
+@code
+{
+	[Property] public PlayerCombat Combat { get; set; }
+	[Property] public string BackgroundTexturePath { get; set; } = "ui/pHpBg_padded.png";
+	[Property] public string FillTexturePath { get; set; } = "ui/pHpFill_padded.png";
+	[Property] public string FrameTexturePath { get; set; } = "ui/pHpFrame_padded.png";
+
+	float HealthPercent => Combat is null || Combat.MaxHealth <= 0f
+		? 0f
+		: (Combat.Health / Combat.MaxHealth * 100f).Clamp( 0f, 100f );
+	string HealthFillStyle => $"height: {HealthPercent.ToString( "0.##", CultureInfo.InvariantCulture )}%;";
+	string CurrentHealthText => Combat is null ? "0" : Math.Ceiling( Combat.Health ).ToString( CultureInfo.InvariantCulture );
+
+	protected override int BuildHash()
+	{
+		return HashCode.Combine(
+			Combat?.Health ?? 0f,
+			Combat?.MaxHealth ?? 0f,
+			BackgroundTexturePath,
+			FillTexturePath,
+			FrameTexturePath );
+	}
+}

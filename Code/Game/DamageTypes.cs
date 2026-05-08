@@ -18,7 +18,7 @@ public enum BuffType
 public enum CharacterId
 {
 	None,
-	CardThrower,
+	Cardveil,
 	ClubBrawler
 }
 
