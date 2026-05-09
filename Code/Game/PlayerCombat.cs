@@ -17,7 +17,10 @@ public sealed class PlayerCombat : Component
 	[Property] public float DefaultDeathImpulse { get; set; } = 280f;
 	[Property] public float UpwardDeathImpulse { get; set; } = 80f;
 	[Property, Group( "Bleed Luck" )] public string BleedLuckTexturePath { get; set; } = "temp/BleedLuck.png";
+	[Property, Group( "Bleed Luck" )] public string BleedLuckBoneName { get; set; } = "spine_2";
+	[Property, Group( "Bleed Luck" )] public Vector3 BleedLuckBoneLocalOffset { get; set; } = new( 0f, 0f, 4f );
 	[Property, Group( "Bleed Luck" )] public Vector3 BleedLuckWorldOffset { get; set; } = new( 0f, 0f, 48f );
+	[Property, Group( "Bleed Luck" )] public float BleedLuckRightOffset { get; set; } = 0f;
 	[Property, Group( "Bleed Luck" )] public float BleedLuckForwardOffset { get; set; } = 0f;
 	[Property, Group( "Bleed Luck" )] public Vector2 BleedLuckSize { get; set; } = new( 18f, 18f );
 	[Property, Group( "Bleed Luck" )] public float BleedLuckPulseSpeed { get; set; } = 5f;
@@ -767,9 +770,41 @@ public sealed class PlayerCombat : Component
 			return;
 
 		BleedLuckMarkerObject.Enabled = true;
-		BleedLuckMarkerObject.WorldPosition = WorldPosition + BleedLuckWorldOffset + WorldRotation.Forward * BleedLuckForwardOffset;
+		BleedLuckMarkerObject.WorldPosition = GetBleedLuckMarkerPosition();
 		UpdateBleedLuckShadowPosition();
 		UpdateBleedLuckPulse();
+	}
+
+	Vector3 GetBleedLuckMarkerPosition()
+	{
+		Vector3 position;
+		var boneObject = GetBleedLuckBoneObject();
+		if ( boneObject.IsValid() )
+		{
+			position = boneObject.WorldPosition
+				+ boneObject.WorldRotation * BleedLuckBoneLocalOffset
+				+ WorldRotation.Right * BleedLuckRightOffset
+				+ WorldRotation.Forward * BleedLuckForwardOffset;
+		}
+		else
+		{
+			position = WorldPosition
+				+ BleedLuckWorldOffset
+				+ WorldRotation.Right * BleedLuckRightOffset
+				+ WorldRotation.Forward * BleedLuckForwardOffset;
+		}
+
+		return position;
+	}
+
+	GameObject GetBleedLuckBoneObject()
+	{
+		BodyRenderer ??= GameObject.Components.Get<SkinnedModelRenderer>( FindMode.EnabledInSelfAndDescendants );
+
+		if ( !BodyRenderer.IsValid() || string.IsNullOrWhiteSpace( BleedLuckBoneName ) )
+			return null;
+
+		return BodyRenderer.GetBoneObject( BleedLuckBoneName );
 	}
 
 	void EnsureBleedLuckMarker()
@@ -794,7 +829,9 @@ public sealed class PlayerCombat : Component
 		BleedLuckShadowRenderer.Lighting = false;
 		BleedLuckShadowRenderer.Shadows = false;
 		BleedLuckShadowRenderer.DepthFeather = 0f;
+		BleedLuckShadowRenderer.RenderOptions.Game = false;
 		BleedLuckShadowRenderer.RenderOptions.Overlay = true;
+		BleedLuckShadowRenderer.RenderOptions.AfterUI = true;
 
 		BleedLuckMarkerRenderer = BleedLuckMarkerObject.Components.Create<SpriteRenderer>();
 		BleedLuckMarkerRenderer.Sprite = Sprite.FromTexture( texture );
@@ -803,7 +840,9 @@ public sealed class PlayerCombat : Component
 		BleedLuckMarkerRenderer.Lighting = false;
 		BleedLuckMarkerRenderer.Shadows = false;
 		BleedLuckMarkerRenderer.DepthFeather = 0f;
+		BleedLuckMarkerRenderer.RenderOptions.Game = false;
 		BleedLuckMarkerRenderer.RenderOptions.Overlay = true;
+		BleedLuckMarkerRenderer.RenderOptions.AfterUI = true;
 	}
 
 	void UpdateBleedLuckPulse()

@@ -17,7 +17,6 @@ public sealed class CardAttack : Component
 	[Property] public float CardVisualSpeed { get; set; } = 1654f;
 	[Property] public int MaxPiercedEnemies { get; set; } = 2;
 	[Property] public float DamageFalloffPerPierce { get; set; } = 0.35f;
-	[Property, Group( "Aim" )] public float AimTraceRange { get; set; } = 5000f;
 	[Property, Group( "Skill Stub" )] public float SkillStubBaseDamage { get; set; } = 30f;
 	[Property, Group( "Shuffle Dash" )] public float ShuffleDashDistance { get; set; } = 180f;
 	[Property, Group( "Shuffle Dash" )] public float ShuffleDashCooldown { get; set; } = 6f;
@@ -393,11 +392,12 @@ public sealed class CardAttack : Component
 
 	Vector3 GetAimPoint( Vector3 cardOrigin )
 	{
+		var aimRange = GetCurrentCardRange();
 		var camera = GetMainCamera();
 		if ( camera.IsValid() )
 		{
 			var start = camera.WorldPosition;
-			var end = start + camera.WorldRotation.Forward * AimTraceRange;
+			var end = start + camera.WorldRotation.Forward * aimRange;
 			var trace = Scene.Trace
 				.Ray( start, end )
 				.IgnoreGameObjectHierarchy( GameObject )
@@ -408,9 +408,9 @@ public sealed class CardAttack : Component
 		}
 
 		if ( Controller.IsValid() )
-			return cardOrigin + Controller.EyeAngles.Forward.Normal * AimTraceRange;
+			return cardOrigin + Controller.EyeAngles.Forward.Normal * aimRange;
 
-		return cardOrigin + WorldRotation.Forward.Normal * AimTraceRange;
+		return cardOrigin + WorldRotation.Forward.Normal * aimRange;
 	}
 
 	CameraComponent GetMainCamera()
