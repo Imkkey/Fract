@@ -53,6 +53,85 @@
 					</div>
 
 				</div>
+
+				@if ( LocalCharacter.CurrentCharacter == CharacterId.Cardveil )
+				{
+					<div class="skill-bar">
+						<div class="skill-slot">
+							<div class="skill-inner-shadow"></div>
+							<img class="skill-icon" src="ui/skills/cardvile/CardvileS1.png" />
+							@if ( ShuffleDashCooldownPercent > 0f )
+							{
+								<div class="skill-cooldown-mask" style="@ShuffleDashCooldownStyle"></div>
+								<div class="skill-cooldown-text">@ShuffleDashCooldownText</div>
+							}
+							@if ( CardAttack?.IsShuffleDashBuffActive ?? false )
+							{
+								<div class="skill-load-text">BOOST</div>
+							}
+							<div class="skill-key">Q</div>
+							<div class="skill-tooltip">
+								<div class="skill-tooltip-header">
+									<div class="skill-tooltip-title">Shuffle Dash</div>
+									<div class="skill-tooltip-badge active">Active</div>
+								</div>
+								<div class="skill-tooltip-desc">Dash in your movement direction. If no key is held, dash forward.</div>
+								<div class="skill-tooltip-section">Stats</div>
+								<div class="skill-tooltip-row"><span>Cooldown</span><b>@FormatNumber(CardAttack?.ShuffleDashCooldown ?? 0f)s</b></div>
+								<div class="skill-tooltip-row"><span>Distance</span><b>@FormatNumber(CardAttack?.ShuffleDashDistance ?? 0f)</b></div>
+								<div class="skill-tooltip-section">After Dash</div>
+								<div class="skill-tooltip-row"><span>Duration</span><b>@FormatNumber(CardAttack?.ShuffleDashBuffDuration ?? 0f)s</b></div>
+								<div class="skill-tooltip-row"><span>Cards</span><b>+@FormatPercent(CardAttack?.ShuffleDashCardSpeedMultiplier ?? 1f) speed / +@FormatPercent(CardAttack?.ShuffleDashCardRangeMultiplier ?? 1f) range</b></div>
+							</div>
+						</div>
+						<div class="skill-slot">
+							<div class="skill-inner-shadow"></div>
+							<img class="skill-icon" src="ui/skills/cardvile/CardvileS2.png" />
+							@if ( MarkedDeckCooldownPercent > 0f )
+							{
+								<div class="skill-cooldown-mask" style="@MarkedDeckCooldownStyle"></div>
+								<div class="skill-cooldown-text">@MarkedDeckCooldownText</div>
+							}
+							<div class="skill-tooltip">
+								<div class="skill-tooltip-header">
+									<div class="skill-tooltip-title">Marked Deck</div>
+									<div class="skill-tooltip-badge passive">Passive</div>
+								</div>
+								<div class="skill-tooltip-desc">Automatically charges one random card in your next throw as a golden card.</div>
+								<div class="skill-tooltip-section">Stats</div>
+								<div class="skill-tooltip-row"><span>Charge time</span><b>@FormatNumber(CardAttack?.MarkedDeckPassiveInterval ?? 0f)s</b></div>
+								<div class="skill-tooltip-row"><span>Golden card</span><b>+@FormatPercent(CardAttack?.MarkedDeckPhysicalDamageMultiplier ?? 1f) physical damage</b></div>
+								<div class="skill-tooltip-section">On Hit</div>
+								<div class="skill-tooltip-row"><span>Reveal</span><b>@FormatNumber(CardAttack?.MarkedDeckRevealDuration ?? 0f)s</b></div>
+								<div class="skill-tooltip-note">Reveal is visible only to Cardveil.</div>
+							</div>
+						</div>
+						<div class="skill-slot">
+							<div class="skill-inner-shadow"></div>
+							<img class="skill-icon" src="ui/skills/cardvile/CardvileS3.png" />
+							@if ( CardAttack?.IsLoadedHandPanelOpen ?? false )
+							{
+								<div class="loaded-hand-panel">
+									<div class="loaded-hand-title">@LoadedHandName</div>
+									<div class="loaded-hand-type">@LoadedHandType</div>
+								</div>
+							}
+							<div class="skill-key">R</div>
+							<div class="skill-tooltip">
+								<div class="skill-tooltip-header">
+									<div class="skill-tooltip-title">Loaded Hand</div>
+									<div class="skill-tooltip-badge active">Ultimate</div>
+								</div>
+								<div class="skill-tooltip-desc">Press R to cycle the card that empowers your next Marked Deck.</div>
+								<div class="skill-tooltip-section">Selected</div>
+								<div class="skill-tooltip-row"><span>Card</span><b>@LoadedHandName</b></div>
+								<div class="skill-tooltip-row"><span>Type</span><b>@LoadedHandType</b></div>
+								<div class="skill-tooltip-section">Effect</div>
+								<div class="skill-tooltip-note">@LoadedHandDescription</div>
+							</div>
+						</div>
+					</div>
+				}
 			}
 
 			@if ( Match is not null )
@@ -76,6 +155,7 @@
 {
 	PlayerCombat LocalCombat { get; set; }
 	PlayerCharacter LocalCharacter { get; set; }
+	CardAttack CardAttack { get; set; }
 	PlayerCombat LocalPlayer => LocalCombat;
 	BattleRoyaleMatch Match => BattleRoyaleMatch.Current;
 	const float DamageBarDelay = 0.22f;
@@ -91,6 +171,45 @@
 	string HealthFillStyle => $"height: {HealthPercent:0.##}%;";
 	string DamageHealthFillStyle => $"height: {GetDamageHealthPercent():0.##}%;";
 	string DamageBonusText => LocalCombat is null ? "0" : $"{LocalCombat.PhysicalDamageBonusPercent / 10f:0.#}";
+	float ShuffleDashCooldownPercent => CardAttack?.ShuffleDashCooldownPercent ?? 0f;
+	string ShuffleDashCooldownStyle => $"height: {ShuffleDashCooldownPercent:0.##}%;";
+	string ShuffleDashCooldownText => CardAttack is null || CardAttack.ShuffleDashCooldownRemaining <= 0f
+		? ""
+		: $"{MathF.Ceiling( CardAttack.ShuffleDashCooldownRemaining )}";
+	float MarkedDeckCooldownPercent => CardAttack?.MarkedDeckPassiveCooldownPercent ?? 0f;
+	string MarkedDeckCooldownStyle => $"height: {MarkedDeckCooldownPercent:0.##}%;";
+	string MarkedDeckCooldownText => CardAttack is null || CardAttack.MarkedDeckPassiveCooldownRemaining <= 0f
+		? ""
+		: $"{MathF.Ceiling( CardAttack.MarkedDeckPassiveCooldownRemaining )}";
+	LoadedHandCard CurrentLoadedHandCard => CardAttack?.DisplayLoadedHandCard ?? LoadedHandCard.Eye;
+	string LoadedHandName => CurrentLoadedHandCard switch
+	{
+		LoadedHandCard.Blood => "Blood Card",
+		LoadedHandCard.Ace => "Ace Card",
+		_ => "Eye Card"
+	};
+	string LoadedHandType => CurrentLoadedHandCard switch
+	{
+		LoadedHandCard.Blood => "Bleed + Heal",
+		LoadedHandCard.Ace => "Combo Damage",
+		_ => "Reveal + Trail"
+	};
+	string LoadedHandDescription => CurrentLoadedHandCard switch
+	{
+		LoadedHandCard.Blood => "Marked Deck deals less direct damage, applies bleed, and returns part of bleed damage as healing.",
+		LoadedHandCard.Ace => "Marked Deck deals bonus magic damage if the target already has Bleed Luck.",
+		_ => "Marked Deck reveals the target and shows a short movement trail for tracking."
+	};
+
+	string FormatNumber( float value )
+	{
+		return value.ToString( "0.##" );
+	}
+
+	string FormatPercent( float multiplier )
+	{
+		return MathF.Round( (multiplier - 1f) * 100f ).ToString( "0" ) + "%";
+	}
 
 	protected override void OnUpdate()
 	{
@@ -102,19 +221,24 @@
 	{
 		UpdateLocalPlayerRefs();
 
-		var playerHash = HashCode.Combine(
-			LocalCombat?.Health ?? 0f,
-			LocalCombat?.MaxHealth ?? 0f,
-			MathF.Round( GetDamageHealthPercent(), 2 ),
-			LocalCombat?.PhysicalDamageBonusPercent ?? 0f,
-			LocalCombat?.MagicDamageBonusPercent ?? 0f,
-			LocalCharacter?.CurrentCharacter ?? CharacterId.None,
-			Match?.AlivePlayers ?? 0,
-			Match?.MatchFinished ?? false );
+		var hash = new HashCode();
+		hash.Add( LocalCombat?.Health ?? 0f );
+		hash.Add( LocalCombat?.MaxHealth ?? 0f );
+		hash.Add( MathF.Round( GetDamageHealthPercent(), 2 ) );
+		hash.Add( LocalCombat?.PhysicalDamageBonusPercent ?? 0f );
+		hash.Add( LocalCombat?.MagicDamageBonusPercent ?? 0f );
+		hash.Add( LocalCharacter?.CurrentCharacter ?? CharacterId.None );
+		hash.Add( CardAttack?.ShuffleDashCooldownRemaining ?? 0f );
+		hash.Add( CardAttack?.MarkedDeckPassiveCooldownRemaining ?? 0f );
+		hash.Add( CardAttack?.IsShuffleDashBuffActive ?? false );
+		hash.Add( CardAttack?.IsMarkedDeckLoaded ?? false );
+		hash.Add( CardAttack?.DisplayLoadedHandCard ?? LoadedHandCard.Eye );
+		hash.Add( CardAttack?.IsLoadedHandPanelOpen ?? false );
+		hash.Add( Match?.AlivePlayers ?? 0 );
+		hash.Add( Match?.MatchFinished ?? false );
+		hash.Add( Match?.WinnerName ?? "" );
 
-		return HashCode.Combine(
-			playerHash,
-			Match?.WinnerName ?? "" );
+		return hash.ToHashCode();
 	}
 
 	void UpdateLocalPlayerRefs()
@@ -122,6 +246,7 @@
 		LocalCombat = Scene.GetAllComponents<PlayerCombat>()
 			.FirstOrDefault( player => player.GameObject.Network.IsOwner );
 		LocalCharacter = LocalCombat?.GetComponent<PlayerCharacter>();
+		CardAttack = LocalCombat?.GetComponent<CardAttack>();
 	}
 
 	float GetDamageHealthPercent()

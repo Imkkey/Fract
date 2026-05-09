@@ -15,12 +15,15 @@ public sealed class CardProjectileVisual : Component
 	[Property] public float RagdollUpwardImpulse { get; set; } = 45f;
 	[Property] public int MaxPiercedEnemies { get; set; } = 2;
 	[Property] public float DamageFalloffPerPierce { get; set; } = 0.35f;
+	[Property] public float PhysicalDamageMultiplier { get; set; } = 1f;
 
 	public Vector3 Direction { get; set; } = Vector3.Forward;
 	public float MaxDistance { get; set; } = 900f;
 	public GameObject Source { get; set; }
 	public CardAttack OwnerAttack { get; set; }
 	public int AttackId { get; set; }
+	public bool IsMarkedDeckCard { get; set; }
+	public LoadedHandCard LoadedHandCard { get; set; } = LoadedHandCard.Eye;
 
 	float TravelledDistance { get; set; }
 	int PiercedPlayers { get; set; }
@@ -86,12 +89,16 @@ public sealed class CardProjectileVisual : Component
 
 		var damageType = PiercedPlayers == 0 ? InitialDamageType : DamageTypeAfterPierce;
 		var falloff = MathF.Pow( 1f - DamageFalloffPerPierce.Clamp( 0f, 0.95f ), PiercedPlayers );
-		var amount = OwnerAttack.IsValid() ? OwnerAttack.ScaleCardDamage( Damage * falloff, damageType ) : Damage * falloff;
+		var damageMultiplier = damageType == DamageType.Physical ? PhysicalDamageMultiplier : 1f;
+		var amount = OwnerAttack.IsValid() ? OwnerAttack.ScaleCardDamage( Damage * falloff * damageMultiplier, damageType ) : Damage * falloff * damageMultiplier;
 		amount = target.ApplyCardveilDamageBonus( amount );
 		var impulse = direction.Normal * RagdollImpulse + Vector3.Up * RagdollUpwardImpulse;
 
 		target.ApplyDamage( new DamageEvent( Source, amount, damageType, hitPosition, impulse ) );
 		OwnerAttack?.RegisterProjectileHit( AttackId, target );
+		if ( IsMarkedDeckCard )
+			OwnerAttack?.NotifyMarkedDeckHit( target, LoadedHandCard );
+
 		PiercedPlayers++;
 
 		if ( PiercedPlayers > MaxPiercedEnemies )

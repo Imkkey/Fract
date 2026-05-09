@@ -207,6 +207,238 @@ BattleRoyaleHud {
 		gap: 2px;
 	}
 
+	.skill-bar {
+		position: absolute;
+		left: 50%;
+		bottom: 42px;
+		transform: translateX(-50%);
+		gap: 28px;
+		align-items: center;
+		justify-content: center;
+		pointer-events: all;
+	}
+
+	.skill-slot {
+		position: relative;
+		width: 96px;
+		height: 96px;
+		background-color: rgba(9, 12, 16, 0.72);
+		border-radius: 8px;
+		padding: 6px;
+		box-shadow: 0px 10px 22px rgba(0, 0, 0, 0.48);
+		align-items: center;
+		justify-content: center;
+	}
+
+	.skill-slot:hover {
+		background-color: rgba(17, 22, 28, 0.86);
+		box-shadow: 0px 12px 26px rgba(0, 0, 0, 0.56);
+	}
+
+	.skill-slot.locked {
+		opacity: 0.58;
+	}
+
+	.skill-icon {
+		width: 80px;
+		height: 80px;
+		border-radius: 6px;
+		z-index: 2;
+	}
+
+	.skill-inner-shadow {
+		position: absolute;
+		left: 6px;
+		top: 6px;
+		width: 80px;
+		height: 80px;
+		border-radius: 6px;
+		background-color: rgba(0, 0, 0, 0.22);
+		z-index: 1;
+	}
+
+	.skill-cooldown-mask {
+		position: absolute;
+		left: 0px;
+		right: 0px;
+		bottom: 0px;
+		background-color: rgba(0, 0, 0, 0.66);
+		z-index: 2;
+	}
+
+	.skill-cooldown-mask.full {
+		top: 0px;
+		height: 100%;
+	}
+
+	.skill-cooldown-text {
+		position: absolute;
+		left: 0px;
+		right: 0px;
+		top: 28px;
+		height: 38px;
+		font-size: 34px;
+		font-weight: 900;
+		text-align: center;
+		align-items: center;
+		justify-content: center;
+		color: white;
+		text-stroke: 5px #272C28;
+		z-index: 4;
+	}
+
+	.skill-load-text {
+		position: absolute;
+		left: 0px;
+		right: 0px;
+		bottom: 4px;
+		height: 22px;
+		background-color: rgba(255, 194, 49, 0.92);
+		font-size: 13px;
+		font-weight: 900;
+		text-align: center;
+		align-items: center;
+		justify-content: center;
+		color: #272C28;
+		z-index: 5;
+	}
+
+	.loaded-hand-panel {
+		position: absolute;
+		left: 50%;
+		bottom: 108px;
+		transform: translateX(-50%);
+		width: 132px;
+		background-color: rgba(12, 15, 19, 0.94);
+		border-radius: 8px;
+		padding: 8px 10px;
+		flex-direction: column;
+		align-items: center;
+		gap: 2px;
+		box-shadow: 0px 10px 24px rgba(0, 0, 0, 0.48);
+		z-index: 8;
+	}
+
+	.loaded-hand-title {
+		font-size: 15px;
+		font-weight: 900;
+		color: white;
+		text-align: center;
+	}
+
+	.loaded-hand-type {
+		font-size: 11px;
+		font-weight: 900;
+		color: rgba(255, 194, 49, 0.95);
+		text-align: center;
+	}
+
+	.skill-key {
+		position: absolute;
+		left: 78px;
+		top: -20px;
+		min-width: 30px;
+		height: 30px;
+		font-size: 30px;
+		font-weight: 900;
+		text-align: center;
+		align-items: center;
+		justify-content: center;
+		color: white;
+		text-stroke: 3px #272C28;
+		z-index: 6;
+	}
+
+	.skill-tooltip {
+		display: none;
+		position: absolute;
+		left: 50%;
+		bottom: 112px;
+		transform: translateX(-50%);
+		width: 340px;
+		background-color: rgba(12, 15, 19, 0.96);
+		border-radius: 8px;
+		padding: 14px 16px;
+		gap: 7px;
+		flex-direction: column;
+		box-shadow: 0px 12px 28px rgba(0, 0, 0, 0.55);
+		font-size: 14px;
+		font-weight: 700;
+		color: rgba(228, 234, 239, 0.92);
+		z-index: 20;
+	}
+
+	.skill-slot:hover .skill-tooltip {
+		display: flex;
+	}
+
+	.skill-tooltip-header {
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 2px;
+	}
+
+	.skill-tooltip-title {
+		font-size: 20px;
+		font-weight: 900;
+		color: white;
+	}
+
+	.skill-tooltip-badge {
+		padding: 3px 8px;
+		border-radius: 5px;
+		font-size: 12px;
+		font-weight: 900;
+		color: #101318;
+	}
+
+	.skill-tooltip-badge.active {
+		background-color: #7fd2ff;
+	}
+
+	.skill-tooltip-badge.passive {
+		background-color: #ffc24b;
+	}
+
+	.skill-tooltip-badge.locked {
+		background-color: #8e98a3;
+	}
+
+	.skill-tooltip-desc {
+		color: rgba(228, 234, 239, 0.78);
+		margin-bottom: 4px;
+	}
+
+	.skill-tooltip-section {
+		margin-top: 6px;
+		padding-top: 7px;
+		border-top: 1px solid rgba(255, 255, 255, 0.1);
+		font-size: 12px;
+		font-weight: 900;
+		text-transform: uppercase;
+		color: rgba(255, 194, 49, 0.95);
+	}
+
+	.skill-tooltip-row {
+		justify-content: space-between;
+		gap: 12px;
+	}
+
+	.skill-tooltip-row span {
+		color: rgba(228, 234, 239, 0.64);
+	}
+
+	.skill-tooltip-row b {
+		color: white;
+		font-weight: 900;
+		text-align: right;
+	}
+
+	.skill-tooltip-note {
+		color: rgba(127, 210, 255, 0.9);
+		font-size: 13px;
+	}
+
 	.match {
 		position: absolute;
 		top: 24px;

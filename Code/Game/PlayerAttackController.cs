@@ -38,19 +38,42 @@ public sealed class PlayerAttackController : Component
 		if ( Combat.IsValid() && Combat.IsDead )
 			return;
 
-		if ( !Input.Pressed( "Attack1" ) )
+		if ( Input.Down( "Score" ) )
 			return;
 
 		Character.EnsureCharacterComponents();
 
-		switch ( Character.CurrentCharacter )
+		if ( Input.Down( "Attack1" ) )
 		{
-			case CharacterId.Cardveil:
-				GetComponent<CardAttack>()?.TryAttack();
-				break;
-			case CharacterId.ClubBrawler:
-				GetComponent<ClubAttack>()?.TryAttack();
-				break;
+			switch ( Character.CurrentCharacter )
+			{
+				case CharacterId.Cardveil:
+					GetComponent<CardAttack>()?.TryAttack();
+					break;
+				case CharacterId.ClubBrawler:
+					GetComponent<ClubAttack>()?.TryAttack();
+					break;
+			}
+		}
+
+		if ( Input.Pressed( "Ability1" ) )
+		{
+			switch ( Character.CurrentCharacter )
+			{
+				case CharacterId.Cardveil:
+					GetComponent<CardAttack>()?.TryShuffleDash();
+					break;
+			}
+		}
+
+		if ( Input.Pressed( "Reload" ) )
+		{
+			switch ( Character.CurrentCharacter )
+			{
+				case CharacterId.Cardveil:
+					GetComponent<CardAttack>()?.TryCycleLoadedHand();
+					break;
+			}
 		}
 	}
 }

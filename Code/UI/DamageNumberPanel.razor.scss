@@ -1,0 +1,26 @@
+DamageNumberPanel {
+	position: absolute;
+	left: 0px;
+	top: 0px;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+	align-items: center;
+	justify-content: center;
+
+	.damage-number {
+		font-family: Poppins;
+		font-size: 42px;
+		font-weight: 900;
+		text-align: center;
+		text-stroke: 8px #272C28;
+	}
+
+	.damage-number.physical {
+		color: #fff2c6;
+	}
+
+	.damage-number.magic {
+		color: #8fd2ff;
+	}
+}

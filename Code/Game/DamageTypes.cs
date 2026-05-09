@@ -22,6 +22,13 @@ public enum CharacterId
 	ClubBrawler
 }
 
+public enum LoadedHandCard
+{
+	Eye,
+	Blood,
+	Ace
+}
+
 public readonly struct DamageEvent
 {
 	public DamageEvent( GameObject source, float amount, DamageType damageType, Vector3 hitPosition, Vector3 impulse = default )

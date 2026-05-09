@@ -33,6 +33,7 @@ public sealed class PlayerCombat : Component
 	[Property, Group( "Bleed Luck" )] public float LuckyCutBonusDamage { get; set; } = 80f;
 	[Property, Group( "Bleed Luck" )] public float LuckyCutSlowMultiplier { get; set; } = 0.75f;
 	[Property, Group( "Bleed Luck" )] public float LuckyCutSlowDuration { get; set; } = 1f;
+	[Property, Group( "Marked Deck" )] public Color MarkedDeckRevealTint { get; set; } = new( 1f, 0.78f, 0.12f, 1f );
 	[Property, Group( "Debug" )] public float DebugHealthDelta { get; set; } = 10f;
 
 	[Sync( Flags = SyncFlags.FromHost )] public float MaxHealth { get; private set; }
@@ -56,8 +57,17 @@ public sealed class PlayerCombat : Component
 	SpriteRenderer BleedLuckShadowRenderer { get; set; }
 	SpriteRenderer BleedLuckMarkerRenderer { get; set; }
 	List<ModelRenderer> HiddenLiveRenderers { get; } = new();
+	List<MarkedDeckRendererState> MarkedDeckRendererStates { get; } = new();
 	TimeUntil BleedLuckExpireTime { get; set; }
 	TimeUntil MoveSlowExpireTime { get; set; }
+	TimeUntil MarkedDeckRevealExpireTime { get; set; }
+	TimeUntil CardveilBleedTickTime { get; set; }
+	TimeUntil CardveilBleedExpireTime { get; set; }
+	GameObject CardveilBleedSource { get; set; }
+	float CardveilBleedDamagePerTick { get; set; }
+	float CardveilBleedHealFraction { get; set; }
+	bool MarkedDeckShowMovementTrail { get; set; }
+	Vector3 MarkedDeckRevealLastPosition { get; set; }
 	PlayerController CachedController { get; set; }
 	float BaseWalkSpeed { get; set; }
 	float BaseRunSpeed { get; set; }
@@ -100,13 +110,16 @@ public sealed class PlayerCombat : Component
 	protected override void OnUpdate()
 	{
 		UpdateTimedStatusEffects();
+		UpdateCardveilBleed();
 		ApplyMoveSpeedMultiplier();
 		UpdateBleedLuckMarker();
+		UpdateMarkedDeckReveal();
 	}
 
 	protected override void OnDestroy()
 	{
 		DestroyBleedLuckMarker();
+		ClearMarkedDeckReveal();
 		DestroyLocalRagdoll();
 	}
 
@@ -170,11 +183,22 @@ public sealed class PlayerCombat : Component
 			return;
 
 		Health = MathF.Max( 0f, Health - damageEvent.Amount );
+		BroadcastDamageNumber( damageEvent.Source, damageEvent.Amount, damageEvent.DamageType, damageEvent.HitPosition );
 
 		if ( Health <= 0f )
 		{
 			Kill( damageEvent );
 		}
+	}
+
+	[Rpc.Broadcast]
+	void BroadcastDamageNumber( GameObject source, float amount, DamageType damageType, Vector3 hitPosition )
+	{
+		if ( amount <= 0f || !source.IsValid() || !source.Network.IsOwner )
+			return;
+
+		var emitter = source.Components.Get<DamageNumberEmitter>( FindMode.Enabled | FindMode.InSelf );
+		emitter?.Spawn( amount, damageType, hitPosition );
 	}
 
 	public void ApplyBleedLuckMark()
@@ -559,6 +583,140 @@ public sealed class PlayerCombat : Component
 		HasBleedLuck = false;
 	}
 
+	public void RevealToCardveilOwner( GameObject cardveilOwner, float duration, bool showMovementTrail = false )
+	{
+		BroadcastMarkedDeckReveal( cardveilOwner, duration, showMovementTrail );
+	}
+
+	[Rpc.Broadcast]
+	void BroadcastMarkedDeckReveal( GameObject cardveilOwner, float duration, bool showMovementTrail )
+	{
+		if ( !cardveilOwner.IsValid() || !cardveilOwner.Network.IsOwner || duration <= 0f )
+			return;
+
+		StartMarkedDeckReveal( duration, showMovementTrail );
+	}
+
+	void StartMarkedDeckReveal( float duration, bool showMovementTrail )
+	{
+		ClearMarkedDeckReveal();
+		MarkedDeckShowMovementTrail = showMovementTrail;
+		MarkedDeckRevealLastPosition = WorldPosition;
+
+		foreach ( var renderer in GameObject.Components.GetAll<ModelRenderer>( FindMode.Enabled | FindMode.InSelf | FindMode.InDescendants ) )
+		{
+			if ( !renderer.IsValid() )
+				continue;
+
+			MarkedDeckRendererStates.Add( new MarkedDeckRendererState
+			{
+				Renderer = renderer,
+				Tint = renderer.Tint,
+				Overlay = renderer.RenderOptions.Overlay
+			} );
+
+			renderer.Tint = MarkedDeckRevealTint;
+			renderer.RenderOptions.Overlay = true;
+		}
+
+		MarkedDeckRevealExpireTime = duration;
+	}
+
+	void UpdateMarkedDeckReveal()
+	{
+		if ( MarkedDeckRendererStates.Count == 0 )
+			return;
+
+		if ( MarkedDeckRevealExpireTime <= 0f || IsDead )
+		{
+			ClearMarkedDeckReveal();
+			return;
+		}
+
+		if ( MarkedDeckShowMovementTrail )
+			DrawMarkedDeckMovementTrail();
+	}
+
+	void ClearMarkedDeckReveal()
+	{
+		MarkedDeckShowMovementTrail = false;
+
+		foreach ( var state in MarkedDeckRendererStates )
+		{
+			if ( !state.Renderer.IsValid() )
+				continue;
+
+			state.Renderer.Tint = state.Tint;
+			state.Renderer.RenderOptions.Overlay = state.Overlay;
+		}
+
+		MarkedDeckRendererStates.Clear();
+	}
+
+	void DrawMarkedDeckMovementTrail()
+	{
+		var currentPosition = WorldPosition + Vector3.Up * 44f;
+		var previousPosition = MarkedDeckRevealLastPosition + Vector3.Up * 44f;
+		var movement = currentPosition - previousPosition;
+
+		if ( movement.Length > 0.5f )
+		{
+			var direction = movement.Normal;
+			DebugOverlay.Line( currentPosition, currentPosition + direction * 70f, new Color( 1f, 0.82f, 0.22f, 0.9f ), 0.08f, default( Transform ), false );
+			MarkedDeckRevealLastPosition = WorldPosition;
+		}
+	}
+
+	public void ApplyCardveilBleed( GameObject source, float totalDamage, float duration, float healFraction )
+	{
+		if ( !Networking.IsHost || IsDead || totalDamage <= 0f || duration <= 0f )
+			return;
+
+		CardveilBleedSource = source;
+		CardveilBleedDamagePerTick = totalDamage / MathF.Max( 1f, MathF.Ceiling( duration ) );
+		CardveilBleedHealFraction = healFraction.Clamp( 0f, 1f );
+		CardveilBleedExpireTime = duration;
+		CardveilBleedTickTime = 1f;
+	}
+
+	void UpdateCardveilBleed()
+	{
+		if ( !Networking.IsHost || !CardveilBleedSource.IsValid() )
+			return;
+
+		if ( IsDead || CardveilBleedExpireTime <= 0f )
+		{
+			ClearCardveilBleed();
+			return;
+		}
+
+		if ( CardveilBleedTickTime > 0f )
+			return;
+
+		ApplyDamage( new DamageEvent( CardveilBleedSource, CardveilBleedDamagePerTick, DamageType.Physical, WorldPosition + Vector3.Up * 42f ) );
+
+		var sourceCombat = CardveilBleedSource.Components.Get<PlayerCombat>( FindMode.Enabled | FindMode.InSelf | FindMode.InAncestors );
+		if ( sourceCombat.IsValid() )
+			sourceCombat.Heal( CardveilBleedDamagePerTick * CardveilBleedHealFraction );
+
+		CardveilBleedTickTime = 1f;
+	}
+
+	void ClearCardveilBleed()
+	{
+		CardveilBleedSource = null;
+		CardveilBleedDamagePerTick = 0f;
+		CardveilBleedHealFraction = 0f;
+	}
+
+	public void Heal( float amount )
+	{
+		if ( !Networking.IsHost || IsDead || amount <= 0f )
+			return;
+
+		Health = MathF.Min( MaxHealth, Health + amount );
+	}
+
 	void ApplyMoveSlow( float multiplier, float duration )
 	{
 		MoveSpeedMultiplier = multiplier.Clamp( 0.1f, 1f );
@@ -702,5 +860,12 @@ public sealed class PlayerCombat : Component
 		BleedLuckMarkerObject = null;
 		BleedLuckShadowRenderer = null;
 		BleedLuckMarkerRenderer = null;
+	}
+
+	struct MarkedDeckRendererState
+	{
+		public ModelRenderer Renderer;
+		public Color Tint;
+		public bool Overlay;
 	}
 }

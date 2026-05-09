@@ -1,0 +1,44 @@
+@using System
+@using System.Globalization
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Sandbox
+
+<root>
+	<div class="damage-number @DamageClass" style="@NumberStyle">
+		@AmountText
+	</div>
+</root>
+
+@code
+{
+	[Property] public float Amount { get; set; }
+	[Property] public DamageType DamageType { get; set; }
+	[Property] public float Scale { get; set; } = 1f;
+	[Property] public float Opacity { get; set; } = 1f;
+
+	string AmountText => CeilToInt( Amount ).ToString( CultureInfo.InvariantCulture );
+	string DamageClass => DamageType == DamageType.Magic ? "magic" : "physical";
+	string NumberStyle => $"transform: scale({Scale.ToString( "0.###", CultureInfo.InvariantCulture )}); opacity: {Opacity.ToString( "0.###", CultureInfo.InvariantCulture )};";
+
+	protected override int BuildHash()
+	{
+		return HashCode.Combine(
+			CeilToInt( Amount ),
+			DamageType,
+			RoundToInt( Scale * 100f ),
+			RoundToInt( Opacity * 100f ) );
+	}
+
+	static int CeilToInt( float value )
+	{
+		var integer = (int)value;
+		return value > integer ? integer + 1 : integer;
+	}
+
+	static int RoundToInt( float value )
+	{
+		return (int)(value + 0.5f);
+	}
+}

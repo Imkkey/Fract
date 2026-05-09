@@ -198,7 +198,9 @@
         "__enabled": true,
         "Flags": 0,
         "BaseMaxHealth": 900,
+        "BleedLuckDamageBonusPerStack": 0.04,
         "BleedLuckForwardOffset": 18,
+        "BleedLuckMaxStacks": 5,
         "BleedLuckMinAlpha": 0.65,
         "BleedLuckPulseScale": 0.22,
         "BleedLuckPulseSpeed": 5,
@@ -207,6 +209,7 @@
         "BleedLuckShadowOffset": "0,0",
         "BleedLuckShadowScale": 9.82002,
         "BleedLuckSize": "18,18",
+        "BleedLuckStackDuration": 6,
         "BleedLuckTexturePath": "temp/BleedLuck.png",
         "BleedLuckWorldOffset": "0,0,52",
         "BodyRenderer": {
@@ -218,6 +221,10 @@
         "CountsForMatch": true,
         "DebugHealthDelta": 10,
         "DefaultDeathImpulse": 280,
+        "LuckyCutBonusDamage": 80,
+        "LuckyCutSlowDuration": 1,
+        "LuckyCutSlowMultiplier": 0.75,
+        "MarkedDeckRevealTint": "1,0.78,0.12,1",
         "OnComponentDestroy": null,
         "OnComponentDisabled": null,
         "OnComponentEnabled": null,
@@ -243,6 +250,38 @@
         "__guid": "96419a20-7426-4a20-bf24-1a13c10ede25",
         "__enabled": true,
         "Flags": 0,
+        "OnComponentDestroy": null,
+        "OnComponentDisabled": null,
+        "OnComponentEnabled": null,
+        "OnComponentFixedUpdate": null,
+        "OnComponentStart": null,
+        "OnComponentUpdate": null
+      },
+      {
+        "__type": "Sandbox.DamageNumberEmitter",
+        "__guid": "5c9a6d66-29ab-4385-84a4-b5c2031ec174",
+        "__enabled": true,
+        "Flags": 0,
+        "Lifetime": 0.85,
+        "MaxRenderScaleMultiplier": 5,
+        "MinRenderScaleMultiplier": 2,
+        "OnComponentDestroy": null,
+        "OnComponentDisabled": null,
+        "OnComponentEnabled": null,
+        "OnComponentFixedUpdate": null,
+        "OnComponentStart": null,
+        "OnComponentUpdate": null,
+        "PanelSize": "120,64",
+        "RenderScale": 0.48,
+        "RiseSpeed": 42,
+        "ScaleReferenceDistance": 600
+      },
+      {
+        "__type": "Sandbox.HoldCursorController",
+        "__guid": "7a9dfef8-f991-4f1f-961d-c4b2158a8c42",
+        "__enabled": true,
+        "Flags": 0,
+        "HoldAction": "Score",
         "OnComponentDestroy": null,
         "OnComponentDisabled": null,
         "OnComponentEnabled": null,
@@ -2087,7 +2126,7 @@
             ]
           },
           {
-            "__guid": "48e748fb-2845-4d25-8de1-525a60223548",
+            "__guid": "2fb20a73-d1bb-4d92-a90d-6ace7df4e541",
             "__version": 2,
             "Flags": 0,
             "Name": "Clothing - bag_v2",
@@ -2104,7 +2143,7 @@
             "Components": [
               {
                 "__type": "Sandbox.SkinnedModelRenderer",
-                "__guid": "360e0c03-a4e4-4ee6-87e6-acd39cfb3e54",
+                "__guid": "5418a351-00ba-499a-b7dd-b5e7f57c5414",
                 "__enabled": true,
                 "Flags": 0,
                 "AnimationGraph": null,
@@ -2156,7 +2195,7 @@
             "Children": []
           },
           {
-            "__guid": "5b493795-490b-40e0-82b5-89ba721fdf53",
+            "__guid": "a25d16c7-8ab2-4fd5-addf-f6fc970ba71d",
             "__version": 2,
             "Flags": 0,
             "Name": "Clothing - qa_team_tshirt",
@@ -2173,7 +2212,7 @@
             "Components": [
               {
                 "__type": "Sandbox.SkinnedModelRenderer",
-                "__guid": "d605a85d-9d5c-48de-a66c-9368f357edd4",
+                "__guid": "4ee9df95-5a46-4831-9235-e5c949d00230",
                 "__enabled": true,
                 "Flags": 0,
                 "AnimationGraph": null,
@@ -2225,7 +2264,7 @@
             "Children": []
           },
           {
-            "__guid": "cca18200-a5fd-458a-8f37-f9dd1dfb0885",
+            "__guid": "73f1a766-bff2-48ee-b39b-aa131841f6c1",
             "__version": 2,
             "Flags": 0,
             "Name": "Clothing - rubber_gloves_black",
@@ -2242,7 +2281,7 @@
             "Components": [
               {
                 "__type": "Sandbox.SkinnedModelRenderer",
-                "__guid": "743f71f2-de5f-41fb-97f1-bd225dee7483",
+                "__guid": "0e19ffb3-a5f2-4058-aba2-335b5daac1d5",
                 "__enabled": true,
                 "Flags": 0,
                 "AnimationGraph": null,
@@ -2294,7 +2333,7 @@
             "Children": []
           },
           {
-            "__guid": "14b8485f-70ab-473b-81b5-b9f54af74fca",
+            "__guid": "e2c66bbf-ac8d-4cef-b0f1-d59a30275ad1",
             "__version": 2,
             "Flags": 0,
             "Name": "Clothing - headphones",
@@ -2311,7 +2350,7 @@
             "Components": [
               {
                 "__type": "Sandbox.SkinnedModelRenderer",
-                "__guid": "047e27f5-4edc-436c-8e12-b9da9d8daa33",
+                "__guid": "f84b8665-cad7-48e2-82eb-4055e1d764a3",
                 "__enabled": true,
                 "Flags": 0,
                 "AnimationGraph": null,
@@ -2363,7 +2402,7 @@
             "Children": []
           },
           {
-            "__guid": "c37e8976-4d58-41f9-b12f-20d0685f0164",
+            "__guid": "8029eef8-bba6-4308-af76-878deca8984d",
             "__version": 2,
             "Flags": 0,
             "Name": "Clothing - clogs_and_socks",
@@ -2380,7 +2419,7 @@
             "Components": [
               {
                 "__type": "Sandbox.SkinnedModelRenderer",
-                "__guid": "891a84ee-6f0f-4736-8afe-c82c5298ac4c",
+                "__guid": "18c55109-f86a-4ef3-b206-5199e41064c6",
                 "__enabled": true,
                 "Flags": 0,
                 "AnimationGraph": null,
@@ -2432,7 +2471,7 @@
             "Children": []
           },
           {
-            "__guid": "573964db-4bba-4a3c-aaf7-f41490d78fa5",
+            "__guid": "8114064b-5532-47f9-8453-943dbca58853",
             "__version": 2,
             "Flags": 0,
             "Name": "Clothing - loose_jeans",
@@ -2449,7 +2488,7 @@
             "Components": [
               {
                 "__type": "Sandbox.SkinnedModelRenderer",
-                "__guid": "60af359f-82f9-408a-b716-5ce5aa3bf39c",
+                "__guid": "8e39e932-0ca7-479c-b187-0719b0f75ddb",
                 "__enabled": true,
                 "Flags": 0,
                 "AnimationGraph": null,
@@ -2501,7 +2540,7 @@
             "Children": []
           },
           {
-            "__guid": "3b2a553f-2898-47d0-b192-7f369f4e4eaa",
+            "__guid": "34d3415f-2877-41de-8dcc-632979b52751",
             "__version": 2,
             "Flags": 0,
             "Name": "Clothing - modern_watch",
@@ -2518,7 +2557,7 @@
             "Components": [
               {
                 "__type": "Sandbox.SkinnedModelRenderer",
-                "__guid": "26b793cd-f961-4c0e-810f-625df59f724c",
+                "__guid": "c6c32448-686c-4319-a58c-090b525b0010",
                 "__enabled": true,
                 "Flags": 0,
                 "AnimationGraph": null,
