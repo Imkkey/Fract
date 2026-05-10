@@ -45,6 +45,7 @@ public sealed class PlayerCharacter : Component
 			return;
 
 		AppliedCharacter = character;
+		GetComponent<PlayerCombat>()?.ApplyCharacterStats( character );
 	}
 
 	[Rpc.Host]

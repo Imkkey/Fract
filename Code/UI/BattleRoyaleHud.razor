@@ -157,6 +157,10 @@
 									<div class="skill-cooldown-mask" style="@GetPlaceholderCooldownStyle(i)"></div>
 									<div class="skill-cooldown-text">@GetPlaceholderCooldownText(i)</div>
 								}
+								@if ( !string.IsNullOrWhiteSpace( GetPlaceholderStatusText( i ) ) )
+								{
+									<div class="skill-load-text">@GetPlaceholderStatusText(i)</div>
+								}
 								@if ( ShouldShowPlaceholderSkillKey( i ) )
 								{
 									<div class="skill-key">@GetPlaceholderSkillKey(i)</div>
@@ -209,6 +213,7 @@
 	PlayerCharacter LocalCharacter { get; set; }
 	CardAttack CardAttack { get; set; }
 	MycellAttack MycellAttack { get; set; }
+	ValtryekLightningAttack ValtryekAttack { get; set; }
 	PlayerCombat LocalPlayer => LocalCombat;
 	BattleRoyaleMatch Match => BattleRoyaleMatch.Current;
 	const float DamageBarDelay = 0.22f;
@@ -247,6 +252,14 @@
 	string MycellUltimateCooldownText => MycellAttack is null || MycellAttack.SporePitCooldownRemaining <= 0f
 		? ""
 		: $"{MathF.Ceiling( MycellAttack.SporePitCooldownRemaining )}";
+	float ValtryekSkill1CooldownPercent => ValtryekAttack?.VoltSlideCooldownPercent ?? 0f;
+	string ValtryekSkill1CooldownText => ValtryekAttack is null || ValtryekAttack.VoltSlideCooldownRemaining <= 0f
+		? ""
+		: $"{MathF.Ceiling( ValtryekAttack.VoltSlideCooldownRemaining )}";
+	float ValtryekSkill2CooldownPercent => ValtryekAttack?.FlashCrashCooldownPercent ?? 0f;
+	string ValtryekSkill2CooldownText => ValtryekAttack is null || ValtryekAttack.FlashCrashCooldownRemaining <= 0f
+		? ""
+		: $"{MathF.Ceiling( ValtryekAttack.FlashCrashCooldownRemaining )}";
 	LoadedHandCard CurrentLoadedHandCard => CardAttack?.DisplayLoadedHandCard ?? LoadedHandCard.Eye;
 	string LoadedHandName => CurrentLoadedHandCard switch
 	{
@@ -311,6 +324,17 @@
 			};
 		}
 
+		if ( LocalCharacter?.CurrentCharacter == CharacterId.Valtryek )
+		{
+			return index switch
+			{
+				0 => "ui/skills/valtryek/ValtryekS1.png",
+				1 => "ui/skills/valtryek/ValtryekS2.png",
+				2 => "ui/skills/valtryek/ValtryekS3.png",
+				_ => ""
+			};
+		}
+
 		return "";
 	}
 	string GetPlaceholderSkillName( int index ) => index switch
@@ -318,9 +342,9 @@
 		0 when LocalCharacter?.CurrentCharacter == CharacterId.Mycell => "Mushroom Step",
 		1 when LocalCharacter?.CurrentCharacter == CharacterId.Mycell => "Rotten Heal",
 		2 when LocalCharacter?.CurrentCharacter == CharacterId.Mycell => "Spore Pit",
-		0 when LocalCharacter?.CurrentCharacter == CharacterId.Valtryek => "Valtryek Skill 1",
-		1 when LocalCharacter?.CurrentCharacter == CharacterId.Valtryek => "Valtryek Skill 2",
-		2 when LocalCharacter?.CurrentCharacter == CharacterId.Valtryek => "Valtryek Ultimate",
+		0 when LocalCharacter?.CurrentCharacter == CharacterId.Valtryek => "Volt Slide",
+		1 when LocalCharacter?.CurrentCharacter == CharacterId.Valtryek => "Flash Crash",
+		2 when LocalCharacter?.CurrentCharacter == CharacterId.Valtryek => "Overcharge",
 		0 => $"{CurrentCharacterName} Skill 1",
 		1 => $"{CurrentCharacterName} Skill 2",
 		2 => $"{CurrentCharacterName} Ultimate",
@@ -331,9 +355,9 @@
 		0 when LocalCharacter?.CurrentCharacter == CharacterId.Mycell => "Grow a mushroom under yourself, leap up and forward, and leave a trap behind.",
 		1 when LocalCharacter?.CurrentCharacter == CharacterId.Mycell => "Consume nearby poison clouds to heal. Clouds that damaged enemies heal more.",
 		2 when LocalCharacter?.CurrentCharacter == CharacterId.Mycell => "Create a huge toxic spore zone. Stay inside to keep it alive.",
-		0 when LocalCharacter?.CurrentCharacter == CharacterId.Valtryek => "Coming soon.",
-		1 when LocalCharacter?.CurrentCharacter == CharacterId.Valtryek => "Coming soon.",
-		2 when LocalCharacter?.CurrentCharacter == CharacterId.Valtryek => "Coming soon.",
+		0 when LocalCharacter?.CurrentCharacter == CharacterId.Valtryek => "Become an electric impulse and perform a fast low slide. Enemies touched by the slide take damage and receive Static.",
+		1 when LocalCharacter?.CurrentCharacter == CharacterId.Valtryek => "Press E to start charging. After 1 second, the charge stays in your hand until you press LMB, replacing the basic attack with a fast unstable lightning mass.",
+		2 when LocalCharacter?.CurrentCharacter == CharacterId.Valtryek => "Generate Voltage by moving fast, hitting enemies, and sliding through targets. Press R at full Voltage to trigger Storm State.",
 		0 => "Active ability placeholder.",
 		1 => "Second ability placeholder.",
 		2 => "Ultimate placeholder.",
@@ -351,10 +375,50 @@
 	string GetPlaceholderSkillBadgeClass( int index ) => LocalCharacter?.CurrentCharacter is CharacterId.Mycell or CharacterId.Valtryek
 		? "active"
 		: "locked";
-	bool HasPlaceholderSkillStats( int index ) => LocalCharacter?.CurrentCharacter == CharacterId.Mycell;
+	bool HasPlaceholderSkillStats( int index ) => LocalCharacter?.CurrentCharacter == CharacterId.Mycell || (LocalCharacter?.CurrentCharacter == CharacterId.Valtryek && index is 0 or 1 or 2);
 	List<string> GetPlaceholderSkillStats( int index )
 	{
 		var rows = new List<string>();
+		if ( LocalCharacter?.CurrentCharacter == CharacterId.Valtryek )
+		{
+			if ( ValtryekAttack is null )
+				return rows;
+
+			if ( index == 0 )
+			{
+				rows.Add( $"Cooldown|{FormatNumber( ValtryekAttack.VoltSlideCooldown )}s" );
+				rows.Add( $"Distance|{FormatNumber( ValtryekAttack.VoltSlideDistance / 100f )}m" );
+				rows.Add( $"Touch damage|{FormatNumber( ValtryekAttack.VoltSlideTouchDamage )} magic" );
+				rows.Add( $"Static|{FormatNumber( ValtryekAttack.StaticMarkDuration )}s" );
+			}
+			else if ( index == 1 )
+			{
+				rows.Add( $"Cooldown|{FormatNumber( ValtryekAttack.FlashCrashCooldown )}s" );
+				rows.Add( $"Charge|{FormatNumber( ValtryekAttack.FlashCrashChargeTime )}s" );
+				rows.Add( "Fire|LMB while charged" );
+				rows.Add( $"Range|{FormatNumber( ValtryekAttack.FlashCrashRange / 100f )}m" );
+				rows.Add( $"Orb speed|{FormatNumber( ValtryekAttack.FlashCrashProjectileSpeed / 100f )}m/s" );
+				rows.Add( $"Collapse|{FormatNumber( ValtryekAttack.FlashCrashCollapseDelay )}s delay" );
+				rows.Add( $"Damage|{FormatNumber( ValtryekAttack.FlashCrashDamage )} magic" );
+				rows.Add( $"Stun|{FormatNumber( ValtryekAttack.FlashCrashStunDuration )}s" );
+				rows.Add( $"Static stun|{FormatNumber( ValtryekAttack.FlashCrashStaticStunDuration )}s" );
+				rows.Add( $"Static chain|{FormatNumber( ValtryekAttack.FlashCrashStaticChainDamage )} damage" );
+			}
+			else if ( index == 2 )
+			{
+				rows.Add( $"Voltage|{FormatNumber( ValtryekAttack.Voltage )}/{FormatNumber( ValtryekAttack.MaxVoltage )}" );
+				rows.Add( $"Gain rate|x{FormatNumber( ValtryekAttack.VoltageGainMultiplier )}" );
+				rows.Add( "Activation|press R at 100 Voltage" );
+				rows.Add( $"Storm State|{FormatNumber( ValtryekAttack.StormStateDuration )}s" );
+				rows.Add( $"Lockout|{FormatNumber( ValtryekAttack.VoltageLockoutAfterStormSeconds )}s after Storm" );
+				rows.Add( $"Storm speed|+{FormatPercent( ValtryekAttack.StormMoveSpeedMultiplier )}" );
+				rows.Add( $"Storm bolts|{FormatNumber( ValtryekAttack.StormGroundImpulseDamage )} damage pulses" );
+				rows.Add( "Storm effects|stronger slide, ground bolts, faster cooldowns" );
+			}
+
+			return rows;
+		}
+
 		if ( LocalCharacter?.CurrentCharacter != CharacterId.Mycell || MycellAttack is null )
 			return rows;
 
@@ -393,6 +457,12 @@
 			return MycellSkill2CooldownPercent;
 		if ( LocalCharacter?.CurrentCharacter == CharacterId.Mycell && index == 2 )
 			return MycellUltimateCooldownPercent;
+		if ( LocalCharacter?.CurrentCharacter == CharacterId.Valtryek && index == 0 )
+			return ValtryekSkill1CooldownPercent;
+		if ( LocalCharacter?.CurrentCharacter == CharacterId.Valtryek && index == 1 )
+			return ValtryekSkill2CooldownPercent;
+		if ( LocalCharacter?.CurrentCharacter == CharacterId.Valtryek && index == 2 )
+			return 0f;
 
 		return 0f;
 	}
@@ -405,6 +475,20 @@
 			return MycellSkill2CooldownText;
 		if ( LocalCharacter?.CurrentCharacter == CharacterId.Mycell && index == 2 )
 			return MycellAttack?.IsSporePitActive ?? false ? "ON" : MycellUltimateCooldownText;
+		if ( LocalCharacter?.CurrentCharacter == CharacterId.Valtryek && index == 0 )
+			return ValtryekSkill1CooldownText;
+		if ( LocalCharacter?.CurrentCharacter == CharacterId.Valtryek && index == 1 )
+			return ValtryekSkill2CooldownText;
+		if ( LocalCharacter?.CurrentCharacter == CharacterId.Valtryek && index == 2 )
+			return "";
+
+		return "";
+	}
+
+	string GetPlaceholderStatusText( int index )
+	{
+		if ( LocalCharacter?.CurrentCharacter == CharacterId.Valtryek && index == 2 && ValtryekAttack is not null )
+			return ValtryekAttack.IsOverheated ? "HOT" : ValtryekAttack.IsStormState ? "STORM" : $"{MathF.Ceiling( ValtryekAttack.Voltage )}V";
 
 		return "";
 	}
@@ -446,6 +530,11 @@
 		hash.Add( MycellAttack?.RottenHealCooldownRemaining ?? 0f );
 		hash.Add( MycellAttack?.SporePitCooldownRemaining ?? 0f );
 		hash.Add( MycellAttack?.IsSporePitActive ?? false );
+		hash.Add( ValtryekAttack?.VoltSlideCooldownRemaining ?? 0f );
+		hash.Add( ValtryekAttack?.FlashCrashCooldownRemaining ?? 0f );
+		hash.Add( MathF.Round( ValtryekAttack?.Voltage ?? 0f, 1 ) );
+		hash.Add( ValtryekAttack?.IsStormState ?? false );
+		hash.Add( ValtryekAttack?.IsOverheated ?? false );
 		hash.Add( Match?.AlivePlayers ?? 0 );
 		hash.Add( Match?.MatchFinished ?? false );
 		hash.Add( Match?.WinnerName ?? "" );
@@ -460,6 +549,7 @@
 		LocalCharacter = LocalCombat?.GetComponent<PlayerCharacter>();
 		CardAttack = LocalCombat?.GetComponent<CardAttack>();
 		MycellAttack = LocalCombat?.GetComponent<MycellAttack>();
+		ValtryekAttack = LocalCombat?.GetComponent<ValtryekLightningAttack>();
 	}
 
 	float GetDamageHealthPercent()

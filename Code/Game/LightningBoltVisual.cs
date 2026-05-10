@@ -22,6 +22,7 @@ public sealed class LightningBoltVisual : Component
 	public Color CoreColor { get; set; } = new( 1f, 1f, 1f, 1f );
 	public Color GlowColor { get; set; } = new( 0.05f, 0.46f, 1f, 0.86f );
 	public float SourceFollowScale { get; set; } = 0.72f;
+	public bool EnableImpactFlash { get; set; } = true;
 	public bool EnableFloorLightSpill { get; set; } = true;
 	public int FloorLightCount { get; set; } = 3;
 	public float FloorLightRadius { get; set; } = 170f;
@@ -40,7 +41,8 @@ public sealed class LightningBoltVisual : Component
 		LifeTime = Lifetime;
 		DrawLightning();
 		CreateSourceFollowBeam();
-		CreateImpactFlash( End, 120f, 0.8f );
+		if ( EnableImpactFlash )
+			CreateImpactFlash( End, 120f, 0.8f );
 	}
 
 	protected override void OnUpdate()
@@ -62,7 +64,8 @@ public sealed class LightningBoltVisual : Component
 		for ( var i = 0; i < BranchStarts.Count && i < BranchEnds.Count; i++ )
 		{
 			DrawBolt( BranchStarts[i], BranchEnds[i], 6, Chaos * 0.38f, Seed + 97 + i * 31, CoreScale * 0.6f, GlowScale * 0.46f, 0 );
-			CreateImpactFlash( BranchEnds[i], 70f, 0.55f );
+			if ( EnableImpactFlash )
+				CreateImpactFlash( BranchEnds[i], 70f, 0.55f );
 		}
 	}
 

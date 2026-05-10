@@ -51,6 +51,18 @@ public sealed class PlayerAttackController : Component
 
 		Character.EnsureCharacterComponents();
 
+		if ( Character.CurrentCharacter == CharacterId.Valtryek )
+		{
+			var valtryek = GetComponent<ValtryekLightningAttack>();
+			if ( valtryek.IsValid() && valtryek.IsFlashCrashCharging )
+			{
+				if ( Input.Pressed( "Attack1" ) )
+					valtryek.TryFireFlashCrashCharge();
+
+				return;
+			}
+		}
+
 		if ( Input.Down( "Attack1" ) )
 		{
 			switch ( Character.CurrentCharacter )
@@ -80,6 +92,9 @@ public sealed class PlayerAttackController : Component
 				case CharacterId.Mycell:
 					GetComponent<MycellAttack>()?.TryMushroomStep();
 					break;
+				case CharacterId.Valtryek:
+					GetComponent<ValtryekLightningAttack>()?.TryVoltSlide();
+					break;
 			}
 		}
 
@@ -89,6 +104,9 @@ public sealed class PlayerAttackController : Component
 			{
 				case CharacterId.Mycell:
 					GetComponent<MycellAttack>()?.TryRottenHeal();
+					break;
+				case CharacterId.Valtryek:
+					GetComponent<ValtryekLightningAttack>()?.TryStartFlashCrashCharge();
 					break;
 			}
 		}
@@ -102,6 +120,9 @@ public sealed class PlayerAttackController : Component
 					break;
 				case CharacterId.Mycell:
 					GetComponent<MycellAttack>()?.TrySporePit();
+					break;
+				case CharacterId.Valtryek:
+					GetComponent<ValtryekLightningAttack>()?.TryActivateOvercharge();
 					break;
 			}
 		}

@@ -334,6 +334,30 @@
         "OnComponentUpdate": null
       },
       {
+        "__type": "Sandbox.ValtryekLightningVisual",
+        "__guid": "4c98d66e-077f-4f89-8d70-83c69a07e513",
+        "__enabled": true,
+        "Flags": 0,
+        "OnComponentDestroy": null,
+        "OnComponentDisabled": null,
+        "OnComponentEnabled": null,
+        "OnComponentFixedUpdate": null,
+        "OnComponentStart": null,
+        "OnComponentUpdate": null
+      },
+      {
+        "__type": "Sandbox.ValtryekLightningAttack",
+        "__guid": "a06795e5-5efe-463f-9c2d-63280023c134",
+        "__enabled": true,
+        "Flags": 0,
+        "OnComponentDestroy": null,
+        "OnComponentDisabled": null,
+        "OnComponentEnabled": null,
+        "OnComponentFixedUpdate": null,
+        "OnComponentStart": null,
+        "OnComponentUpdate": null
+      },
+      {
         "__type": "Sandbox.DamageNumberEmitter",
         "__guid": "5c9a6d66-29ab-4385-84a4-b5c2031ec174",
         "__enabled": true,

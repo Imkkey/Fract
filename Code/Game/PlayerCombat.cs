@@ -16,6 +16,10 @@ public sealed class PlayerCombat : Component
 	[Property] public SkinnedModelRenderer BodyRenderer { get; set; }
 	[Property] public float DefaultDeathImpulse { get; set; } = 280f;
 	[Property] public float UpwardDeathImpulse { get; set; } = 80f;
+	[Property, Group( "Valtryek Stats" )] public float ValtryekMaxHealth { get; set; } = 700f;
+	[Property, Group( "Valtryek Stats" )] public float ValtryekWalkSpeed { get; set; } = 140f;
+	[Property, Group( "Valtryek Stats" )] public float ValtryekRunSpeed { get; set; } = 380f;
+	[Property, Group( "Valtryek Stats" )] public float ValtryekDuckedSpeed { get; set; } = 90f;
 	[Property, Group( "Bleed Luck" )] public string BleedLuckTexturePath { get; set; } = "temp/BleedLuck.png";
 	[Property, Group( "Bleed Luck" )] public string BleedLuckBoneName { get; set; } = "spine_2";
 	[Property, Group( "Bleed Luck" )] public Vector3 BleedLuckBoneLocalOffset { get; set; } = new( 0f, 0f, 4f );
@@ -39,12 +43,14 @@ public sealed class PlayerCombat : Component
 	[Property, Group( "Bleed Luck" )] public float LuckyCutSlowDuration { get; set; } = 1f;
 	[Property, Group( "Marked Deck" )] public Color MarkedDeckRevealTint { get; set; } = new( 1f, 0.78f, 0.12f, 1f );
 	[Property, Group( "Spore Pit" )] public Color SporePitRevealTint { get; set; } = new( 0.45f, 1f, 0.22f, 1f );
+	[Property, Group( "Static Mark" )] public float StaticMarkBonusDamage { get; set; } = 24f;
 	[Property, Group( "Debug" )] public float DebugHealthDelta { get; set; } = 10f;
 
 	[Sync( Flags = SyncFlags.FromHost )] public float MaxHealth { get; private set; }
 	[Sync( Flags = SyncFlags.FromHost )] public float Health { get; private set; }
 	[Sync( Flags = SyncFlags.FromHost )] public bool IsDead { get; private set; }
 	[Sync( Flags = SyncFlags.FromHost )] public bool HasBleedLuck { get; private set; }
+	[Sync( Flags = SyncFlags.FromHost )] public bool HasStaticMark { get; private set; }
 	[Sync( Flags = SyncFlags.FromHost )] public int BleedLuckStacks { get; private set; }
 	[Sync( Flags = SyncFlags.FromHost )] public float MoveSpeedMultiplier { get; private set; } = DefaultMoveSpeedMultiplier;
 	[Sync( Flags = SyncFlags.FromHost )] public float PhysicalDamageBonusPercent { get; private set; }
@@ -64,6 +70,8 @@ public sealed class PlayerCombat : Component
 	List<ModelRenderer> HiddenLiveRenderers { get; } = new();
 	List<MarkedDeckRendererState> MarkedDeckRendererStates { get; } = new();
 	TimeUntil BleedLuckExpireTime { get; set; }
+	TimeUntil StaticMarkExpireTime { get; set; }
+	TimeUntil StunExpireTime { get; set; }
 	TimeUntil MoveSlowExpireTime { get; set; }
 	TimeUntil MarkedDeckRevealExpireTime { get; set; }
 	TimeUntil CardveilBleedTickTime { get; set; }
@@ -74,6 +82,9 @@ public sealed class PlayerCombat : Component
 	bool MarkedDeckShowMovementTrail { get; set; }
 	Vector3 MarkedDeckRevealLastPosition { get; set; }
 	PlayerController CachedController { get; set; }
+	float DefaultWalkSpeed { get; set; }
+	float DefaultRunSpeed { get; set; }
+	float DefaultDuckedSpeed { get; set; }
 	float BaseWalkSpeed { get; set; }
 	float BaseRunSpeed { get; set; }
 	float BaseDuckedSpeed { get; set; }
@@ -134,6 +145,8 @@ public sealed class PlayerCombat : Component
 		Health = MaxHealth;
 		IsDead = false;
 		HasBleedLuck = false;
+		HasStaticMark = false;
+		StunExpireTime = 0f;
 		BleedLuckStacks = 0;
 		MoveSpeedMultiplier = DefaultMoveSpeedMultiplier;
 		PhysicalDamageBonusPercent = 0f;
@@ -142,6 +155,30 @@ public sealed class PlayerCombat : Component
 		BonusAmmoCapacity = 0;
 		GameObject.Enabled = true;
 		ResetDeathState();
+	}
+
+	public void ApplyCharacterStats( CharacterId characterId )
+	{
+		if ( characterId == CharacterId.Valtryek )
+		{
+			SetBaseMoveSpeeds( ValtryekWalkSpeed, ValtryekRunSpeed, ValtryekDuckedSpeed );
+
+			if ( Networking.IsHost )
+			{
+				MaxHealth = ValtryekMaxHealth;
+				Health = ValtryekMaxHealth;
+			}
+
+			return;
+		}
+
+		RestoreDefaultMoveSpeeds();
+
+		if ( Networking.IsHost )
+		{
+			MaxHealth = BaseMaxHealth;
+			Health = MathF.Min( Health, MaxHealth );
+		}
 	}
 
 	public float ScaleDamage( float baseDamage, DamageType damageType )
@@ -576,6 +613,14 @@ public sealed class PlayerCombat : Component
 			ClearBleedLuck();
 		}
 
+		if ( HasStaticMark && StaticMarkExpireTime <= 0f )
+		{
+			ClearStaticMark();
+		}
+
+		if ( !IsDead && StunExpireTime <= 0f )
+			SetStunned( false );
+
 		if ( MoveSpeedMultiplier != DefaultMoveSpeedMultiplier && MoveSlowExpireTime <= 0f )
 		{
 			MoveSpeedMultiplier = DefaultMoveSpeedMultiplier;
@@ -586,6 +631,50 @@ public sealed class PlayerCombat : Component
 	{
 		BleedLuckStacks = 0;
 		HasBleedLuck = false;
+	}
+
+	public void ApplyStaticMark( float duration )
+	{
+		if ( !Networking.IsHost || IsDead || duration <= 0f )
+			return;
+
+		HasStaticMark = true;
+		StaticMarkExpireTime = duration;
+	}
+
+	public bool TryConsumeStaticMark( out float bonusDamage )
+	{
+		bonusDamage = 0f;
+		if ( !Networking.IsHost || !HasStaticMark || IsDead )
+			return false;
+
+		bonusDamage = StaticMarkBonusDamage;
+		ClearStaticMark();
+		return true;
+	}
+
+	public void ApplyStun( float duration )
+	{
+		if ( !Networking.IsHost || IsDead || duration <= 0f )
+			return;
+
+		StunExpireTime = duration;
+		SetStunned( true );
+	}
+
+	void ClearStaticMark()
+	{
+		HasStaticMark = false;
+	}
+
+	void SetStunned( bool stunned )
+	{
+		if ( IsDead && !stunned )
+			return;
+
+		var controller = GetComponent<PlayerController>();
+		if ( controller.IsValid() )
+			controller.Enabled = !stunned;
 	}
 
 	public void RevealToCardveilOwner( GameObject cardveilOwner, float duration, bool showMovementTrail = false )
@@ -762,6 +851,32 @@ public sealed class PlayerCombat : Component
 		BaseWalkSpeed = CachedController.WalkSpeed;
 		BaseRunSpeed = CachedController.RunSpeed;
 		BaseDuckedSpeed = CachedController.DuckedSpeed;
+
+		if ( DefaultWalkSpeed <= 0f )
+		{
+			DefaultWalkSpeed = BaseWalkSpeed;
+			DefaultRunSpeed = BaseRunSpeed;
+			DefaultDuckedSpeed = BaseDuckedSpeed;
+		}
+	}
+
+	void RestoreDefaultMoveSpeeds()
+	{
+		if ( !CachedController.IsValid() )
+			CacheBaseMoveSpeeds();
+
+		SetBaseMoveSpeeds( DefaultWalkSpeed, DefaultRunSpeed, DefaultDuckedSpeed );
+	}
+
+	void SetBaseMoveSpeeds( float walkSpeed, float runSpeed, float duckedSpeed )
+	{
+		if ( !CachedController.IsValid() )
+			CacheBaseMoveSpeeds();
+
+		BaseWalkSpeed = walkSpeed;
+		BaseRunSpeed = runSpeed;
+		BaseDuckedSpeed = duckedSpeed;
+		ApplyMoveSpeedMultiplier();
 	}
 
 	void ApplyMoveSpeedMultiplier()
