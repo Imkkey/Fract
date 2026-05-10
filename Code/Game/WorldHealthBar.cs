@@ -114,12 +114,6 @@ public sealed class WorldHealthBar : Component
 		if ( !Panel.IsValid() )
 			return;
 
-		var rootPanel = Panel.Panel?.FindRootPanel();
-		if ( rootPanel is not null )
-		{
-			rootPanel.PanelBounds = new Rect( 0f, 0f, PanelSize.x, PanelSize.y );
-		}
-
 		Panel.Combat = Combat;
 		Panel.BackgroundTexturePath = backgroundTexturePath;
 		Panel.FillTexturePath = fillTexturePath;

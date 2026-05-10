@@ -15,8 +15,7 @@ public sealed class PlayerCharacter : Component
 	protected override void OnStart()
 	{
 		VisualCharacter = SelectedCharacter;
-		RemoveCharacterComponents();
-		AppliedCharacter = CharacterId.None;
+		EnsureCharacterComponents();
 
 		if ( Networking.IsHost )
 		{
@@ -32,24 +31,16 @@ public sealed class PlayerCharacter : Component
 
 	public void EnsureCharacterComponents()
 	{
+		EnsureComponent<CardThrowVisual>();
+		EnsureComponent<CardAttack>();
+		EnsureComponent<ClubWeaponIk>();
+		EnsureComponent<ClubAttack>();
+		EnsureComponent<MycellThrowVisual>();
+		EnsureComponent<MycellAttack>();
+
 		var character = CurrentCharacter;
 		if ( AppliedCharacter == character )
 			return;
-
-		RemoveCharacterComponents();
-		AppliedCharacter = CharacterId.None;
-
-		switch ( character )
-		{
-			case CharacterId.Cardveil:
-				Components.Create<CardThrowVisual>();
-				Components.Create<CardAttack>();
-				break;
-			case CharacterId.ClubBrawler:
-				Components.Create<ClubWeaponIk>();
-				Components.Create<ClubAttack>();
-				break;
-		}
 
 		AppliedCharacter = character;
 	}
@@ -60,7 +51,7 @@ public sealed class PlayerCharacter : Component
 		if ( SelectedCharacter != CharacterId.None )
 			return;
 
-		if ( characterId is not CharacterId.Cardveil and not CharacterId.ClubBrawler )
+		if ( characterId is not CharacterId.Cardveil and not CharacterId.ClubBrawler and not CharacterId.Mycell )
 			return;
 
 		SelectedCharacter = characterId;
@@ -73,19 +64,11 @@ public sealed class PlayerCharacter : Component
 		VisualCharacter = characterId;
 	}
 
-	void RemoveCharacterComponents()
+	void EnsureComponent<T>() where T : Component, new()
 	{
-		DestroyComponent<CardAttack>();
-		DestroyComponent<CardThrowVisual>();
-		DestroyComponent<ClubAttack>();
-		DestroyComponent<ClubWeaponIk>();
-	}
-
-	void DestroyComponent<T>() where T : Component
-	{
-		foreach ( var component in Components.GetAll<T>( FindMode.EverythingInSelf ) )
+		if ( !Components.Get<T>( FindMode.EverythingInSelf ).IsValid() )
 		{
-			component.Destroy();
+			Components.Create<T>();
 		}
 	}
 }

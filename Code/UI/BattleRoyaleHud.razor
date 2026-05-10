@@ -1,4 +1,5 @@
 @using System
+@using System.Collections.Generic
 @using Sandbox
 @using Sandbox.UI
 @inherits PanelComponent
@@ -20,6 +21,9 @@
 						</button>
 						<button onclick="@(() => LocalCharacter?.RequestSelectCharacter(CharacterId.ClubBrawler))">
 							Club Brawler
+						</button>
+						<button onclick="@(() => LocalCharacter?.RequestSelectCharacter(CharacterId.Mycell))">
+							Mycell
 						</button>
 					</div>
 				</div>
@@ -54,9 +58,9 @@
 
 				</div>
 
-				@if ( LocalCharacter.CurrentCharacter == CharacterId.Cardveil )
-				{
-					<div class="skill-bar">
+				<div class="skill-bar">
+					@if ( LocalCharacter.CurrentCharacter == CharacterId.Cardveil )
+					{
 						<div class="skill-slot">
 							<div class="skill-inner-shadow"></div>
 							<img class="skill-icon" src="ui/skills/cardvile/CardvileS1.png" />
@@ -130,8 +134,53 @@
 								<div class="skill-tooltip-note">@LoadedHandDescription</div>
 							</div>
 						</div>
-					</div>
-				}
+					}
+					else
+					{
+						@for ( var i = 0; i < 3; i++ )
+						{
+							<div class="skill-slot @GetPlaceholderSkillSlotClass(i)">
+								<div class="skill-inner-shadow"></div>
+								@if ( HasPlaceholderSkillIcon(i) )
+								{
+									<img class="skill-icon" src="@GetPlaceholderSkillIconPath(i)" />
+								}
+								else
+								{
+									<div class="skill-placeholder-icon">@GetPlaceholderSkillLabel(i)</div>
+								}
+								@if ( GetPlaceholderCooldownPercent( i ) > 0f )
+								{
+									<div class="skill-cooldown-mask" style="@GetPlaceholderCooldownStyle(i)"></div>
+									<div class="skill-cooldown-text">@GetPlaceholderCooldownText(i)</div>
+								}
+								@if ( ShouldShowPlaceholderSkillKey( i ) )
+								{
+									<div class="skill-key">@GetPlaceholderSkillKey(i)</div>
+								}
+								<div class="skill-tooltip">
+									<div class="skill-tooltip-header">
+										<div class="skill-tooltip-title">@GetPlaceholderSkillName(i)</div>
+										<div class="skill-tooltip-badge @GetPlaceholderSkillBadgeClass(i)">@GetPlaceholderSkillBadgeText(i)</div>
+									</div>
+									<div class="skill-tooltip-desc">@GetPlaceholderSkillDescription(i)</div>
+									@if ( HasPlaceholderSkillStats(i) )
+									{
+										<div class="skill-tooltip-section">Stats</div>
+										@foreach ( var row in GetPlaceholderSkillStats(i) )
+										{
+											<div class="skill-tooltip-row"><span>@row.Split('|')[0]</span><b>@row.Split('|')[1]</b></div>
+										}
+									}
+									else
+									{
+										<div class="skill-tooltip-note">Icon and ability logic will be added later.</div>
+									}
+								</div>
+							</div>
+						}
+					}
+				</div>
 			}
 
 			@if ( Match is not null )
@@ -156,6 +205,7 @@
 	PlayerCombat LocalCombat { get; set; }
 	PlayerCharacter LocalCharacter { get; set; }
 	CardAttack CardAttack { get; set; }
+	MycellAttack MycellAttack { get; set; }
 	PlayerCombat LocalPlayer => LocalCombat;
 	BattleRoyaleMatch Match => BattleRoyaleMatch.Current;
 	const float DamageBarDelay = 0.22f;
@@ -181,6 +231,19 @@
 	string MarkedDeckCooldownText => CardAttack is null || CardAttack.MarkedDeckPassiveCooldownRemaining <= 0f
 		? ""
 		: $"{MathF.Ceiling( CardAttack.MarkedDeckPassiveCooldownRemaining )}";
+	float MycellSkill1CooldownPercent => MycellAttack?.MushroomStepCooldownPercent ?? 0f;
+	string MycellSkill1CooldownStyle => $"height: {MycellSkill1CooldownPercent:0.##}%;";
+	string MycellSkill1CooldownText => MycellAttack is null || MycellAttack.MushroomStepCooldownRemaining <= 0f
+		? ""
+		: $"{MathF.Ceiling( MycellAttack.MushroomStepCooldownRemaining )}";
+	float MycellSkill2CooldownPercent => MycellAttack?.RottenHealCooldownPercent ?? 0f;
+	string MycellSkill2CooldownText => MycellAttack is null || MycellAttack.RottenHealCooldownRemaining <= 0f
+		? ""
+		: $"{MathF.Ceiling( MycellAttack.RottenHealCooldownRemaining )}";
+	float MycellUltimateCooldownPercent => MycellAttack?.SporePitCooldownPercent ?? 0f;
+	string MycellUltimateCooldownText => MycellAttack is null || MycellAttack.SporePitCooldownRemaining <= 0f
+		? ""
+		: $"{MathF.Ceiling( MycellAttack.SporePitCooldownRemaining )}";
 	LoadedHandCard CurrentLoadedHandCard => CardAttack?.DisplayLoadedHandCard ?? LoadedHandCard.Eye;
 	string LoadedHandName => CurrentLoadedHandCard switch
 	{
@@ -200,6 +263,137 @@
 		LoadedHandCard.Ace => "Marked Deck deals bonus magic damage if the target already has Bleed Luck.",
 		_ => "Marked Deck reveals the target and shows a short movement trail for tracking."
 	};
+	string CurrentCharacterName => LocalCharacter?.CurrentCharacter switch
+	{
+		CharacterId.ClubBrawler => "Club Brawler",
+		CharacterId.Mycell => "Mycell",
+		CharacterId.Cardveil => "Cardveil",
+		_ => "Character"
+	};
+	string GetPlaceholderSkillKey( int index ) => index switch
+	{
+		0 => "Q",
+		1 => "E",
+		2 => "R",
+		_ => ""
+	};
+	bool ShouldShowPlaceholderSkillKey( int index ) => !IsPlaceholderPassiveSkill( index ) && !string.IsNullOrWhiteSpace( GetPlaceholderSkillKey( index ) );
+	bool IsPlaceholderPassiveSkill( int index ) => false;
+	string GetPlaceholderSkillSlotClass( int index )
+	{
+		if ( LocalCharacter?.CurrentCharacter == CharacterId.Mycell )
+			return "";
+
+		return "locked";
+	}
+	string GetPlaceholderSkillLabel( int index ) => index switch
+	{
+		0 => "S1",
+		1 => "S2",
+		2 => "ULT",
+		_ => "S"
+	};
+	bool HasPlaceholderSkillIcon( int index ) => !string.IsNullOrWhiteSpace( GetPlaceholderSkillIconPath( index ) );
+	string GetPlaceholderSkillIconPath( int index )
+	{
+		if ( LocalCharacter?.CurrentCharacter == CharacterId.Mycell )
+		{
+			return index switch
+			{
+				0 => "ui/skills/mycell/MycellS1.png",
+				1 => "ui/skills/mycell/MycellS2.png",
+				2 => "ui/skills/mycell/MycellS3.png",
+				_ => ""
+			};
+		}
+
+		return "";
+	}
+	string GetPlaceholderSkillName( int index ) => index switch
+	{
+		0 when LocalCharacter?.CurrentCharacter == CharacterId.Mycell => "Mushroom Step",
+		1 when LocalCharacter?.CurrentCharacter == CharacterId.Mycell => "Rotten Heal",
+		2 when LocalCharacter?.CurrentCharacter == CharacterId.Mycell => "Spore Pit",
+		0 => $"{CurrentCharacterName} Skill 1",
+		1 => $"{CurrentCharacterName} Skill 2",
+		2 => $"{CurrentCharacterName} Ultimate",
+		_ => $"{CurrentCharacterName} Skill"
+	};
+	string GetPlaceholderSkillDescription( int index ) => index switch
+	{
+		0 when LocalCharacter?.CurrentCharacter == CharacterId.Mycell => "Grow a mushroom under yourself, leap up and forward, and leave a trap behind.",
+		1 when LocalCharacter?.CurrentCharacter == CharacterId.Mycell => "Consume nearby poison clouds to heal. Clouds that damaged enemies heal more.",
+		2 when LocalCharacter?.CurrentCharacter == CharacterId.Mycell => "Create a huge toxic spore zone. Stay inside to keep it alive.",
+		0 => "Active ability placeholder.",
+		1 => "Second ability placeholder.",
+		2 => "Ultimate placeholder.",
+		_ => "Ability placeholder."
+	};
+	string GetPlaceholderSkillBadgeText( int index ) => LocalCharacter?.CurrentCharacter == CharacterId.Mycell && index == 2
+		? "Ultimate"
+		: LocalCharacter?.CurrentCharacter == CharacterId.Mycell && index is 0 or 1
+			? "Active"
+		: "Soon";
+	string GetPlaceholderSkillBadgeClass( int index ) => LocalCharacter?.CurrentCharacter == CharacterId.Mycell
+		? "active"
+		: "locked";
+	bool HasPlaceholderSkillStats( int index ) => LocalCharacter?.CurrentCharacter == CharacterId.Mycell;
+	List<string> GetPlaceholderSkillStats( int index )
+	{
+		var rows = new List<string>();
+		if ( LocalCharacter?.CurrentCharacter != CharacterId.Mycell || MycellAttack is null )
+			return rows;
+
+		if ( index == 0 )
+		{
+			rows.Add( $"Cooldown|{FormatNumber( MycellAttack.MushroomStepCooldown )}s" );
+			rows.Add( $"Trap lifetime|{FormatNumber( MycellAttack.MushroomStepTrapLifetime )}s" );
+			rows.Add( "Bounce|owner only" );
+		}
+		else if ( index == 1 )
+		{
+			rows.Add( $"Cooldown|{FormatNumber( MycellAttack.RottenHealCooldown )}s" );
+			rows.Add( $"Radius|{FormatNumber( MycellAttack.RottenHealRadius / 100f )}m" );
+			rows.Add( $"Clouds|up to {MycellAttack.RottenHealMaxClouds}" );
+			rows.Add( $"Heal|{FormatNumber( MycellAttack.RottenHealAmount )}/{FormatNumber( MycellAttack.RottenHealEmpoweredAmount )} HP" );
+			rows.Add( $"Speed|+{FormatPercent( MycellAttack.RottenHealMoveSpeedMultiplier )} for {FormatNumber( MycellAttack.RottenHealMoveSpeedDuration )}s" );
+		}
+		else if ( index == 2 )
+		{
+			rows.Add( $"Cooldown|{FormatNumber( MycellAttack.SporePitCooldown )}s" );
+			rows.Add( $"Radius|{FormatNumber( MycellAttack.SporePitRadius / 100f )}m" );
+			rows.Add( $"Duration|{FormatNumber( MycellAttack.SporePitDuration )}s" );
+			rows.Add( $"Damage|{FormatNumber( MycellAttack.SporePitTickDamage )}/sec" );
+			rows.Add( $"Enemy slow|{FormatPercent( MycellAttack.SporePitEnemySlowMultiplier )}" );
+			rows.Add( $"Owner speed|+{FormatPercent( MycellAttack.SporePitOwnerMoveSpeedMultiplier )}" );
+			rows.Add( $"Leave time|{FormatNumber( MycellAttack.SporePitExitGraceSeconds )}s" );
+		}
+
+		return rows;
+	}
+	float GetPlaceholderCooldownPercent( int index )
+	{
+		if ( LocalCharacter?.CurrentCharacter == CharacterId.Mycell && index == 0 )
+			return MycellSkill1CooldownPercent;
+		if ( LocalCharacter?.CurrentCharacter == CharacterId.Mycell && index == 1 )
+			return MycellSkill2CooldownPercent;
+		if ( LocalCharacter?.CurrentCharacter == CharacterId.Mycell && index == 2 )
+			return MycellUltimateCooldownPercent;
+
+		return 0f;
+	}
+	string GetPlaceholderCooldownStyle( int index ) => $"height: {GetPlaceholderCooldownPercent( index ):0.##}%;";
+	string GetPlaceholderCooldownText( int index )
+	{
+		if ( LocalCharacter?.CurrentCharacter == CharacterId.Mycell && index == 0 )
+			return MycellSkill1CooldownText;
+		if ( LocalCharacter?.CurrentCharacter == CharacterId.Mycell && index == 1 )
+			return MycellSkill2CooldownText;
+		if ( LocalCharacter?.CurrentCharacter == CharacterId.Mycell && index == 2 )
+			return MycellAttack?.IsSporePitActive ?? false ? "ON" : MycellUltimateCooldownText;
+
+		return "";
+	}
 
 	string FormatNumber( float value )
 	{
@@ -234,6 +428,10 @@
 		hash.Add( CardAttack?.IsMarkedDeckLoaded ?? false );
 		hash.Add( CardAttack?.DisplayLoadedHandCard ?? LoadedHandCard.Eye );
 		hash.Add( CardAttack?.IsLoadedHandPanelOpen ?? false );
+		hash.Add( MycellAttack?.MushroomStepCooldownRemaining ?? 0f );
+		hash.Add( MycellAttack?.RottenHealCooldownRemaining ?? 0f );
+		hash.Add( MycellAttack?.SporePitCooldownRemaining ?? 0f );
+		hash.Add( MycellAttack?.IsSporePitActive ?? false );
 		hash.Add( Match?.AlivePlayers ?? 0 );
 		hash.Add( Match?.MatchFinished ?? false );
 		hash.Add( Match?.WinnerName ?? "" );
@@ -247,6 +445,7 @@
 			.FirstOrDefault( player => player.GameObject.Network.IsOwner );
 		LocalCharacter = LocalCombat?.GetComponent<PlayerCharacter>();
 		CardAttack = LocalCombat?.GetComponent<CardAttack>();
+		MycellAttack = LocalCombat?.GetComponent<MycellAttack>();
 	}
 
 	float GetDamageHealthPercent()

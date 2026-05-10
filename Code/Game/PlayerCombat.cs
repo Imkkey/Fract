@@ -22,6 +22,7 @@ public sealed class PlayerCombat : Component
 	[Property, Group( "Bleed Luck" )] public Vector3 BleedLuckWorldOffset { get; set; } = new( 0f, 0f, 48f );
 	[Property, Group( "Bleed Luck" )] public float BleedLuckRightOffset { get; set; } = 0f;
 	[Property, Group( "Bleed Luck" )] public float BleedLuckForwardOffset { get; set; } = 0f;
+	[Property, Group( "Bleed Luck" )] public bool BleedLuckHideBehindWalls { get; set; } = true;
 	[Property, Group( "Bleed Luck" )] public Vector2 BleedLuckSize { get; set; } = new( 18f, 18f );
 	[Property, Group( "Bleed Luck" )] public float BleedLuckPulseSpeed { get; set; } = 5f;
 	[Property, Group( "Bleed Luck" )] public float BleedLuckPulseScale { get; set; } = 0.22f;
@@ -37,6 +38,7 @@ public sealed class PlayerCombat : Component
 	[Property, Group( "Bleed Luck" )] public float LuckyCutSlowMultiplier { get; set; } = 0.75f;
 	[Property, Group( "Bleed Luck" )] public float LuckyCutSlowDuration { get; set; } = 1f;
 	[Property, Group( "Marked Deck" )] public Color MarkedDeckRevealTint { get; set; } = new( 1f, 0.78f, 0.12f, 1f );
+	[Property, Group( "Spore Pit" )] public Color SporePitRevealTint { get; set; } = new( 0.45f, 1f, 0.22f, 1f );
 	[Property, Group( "Debug" )] public float DebugHealthDelta { get; set; } = 10f;
 
 	[Sync( Flags = SyncFlags.FromHost )] public float MaxHealth { get; private set; }
@@ -591,16 +593,30 @@ public sealed class PlayerCombat : Component
 		BroadcastMarkedDeckReveal( cardveilOwner, duration, showMovementTrail );
 	}
 
+	public void RevealToMycellOwner( GameObject mycellOwner, float duration )
+	{
+		BroadcastMycellReveal( mycellOwner, duration );
+	}
+
 	[Rpc.Broadcast]
 	void BroadcastMarkedDeckReveal( GameObject cardveilOwner, float duration, bool showMovementTrail )
 	{
 		if ( !cardveilOwner.IsValid() || !cardveilOwner.Network.IsOwner || duration <= 0f )
 			return;
 
-		StartMarkedDeckReveal( duration, showMovementTrail );
+		StartMarkedDeckReveal( duration, showMovementTrail, MarkedDeckRevealTint );
 	}
 
-	void StartMarkedDeckReveal( float duration, bool showMovementTrail )
+	[Rpc.Broadcast]
+	void BroadcastMycellReveal( GameObject mycellOwner, float duration )
+	{
+		if ( !mycellOwner.IsValid() || !mycellOwner.Network.IsOwner || duration <= 0f )
+			return;
+
+		StartMarkedDeckReveal( duration, false, SporePitRevealTint );
+	}
+
+	void StartMarkedDeckReveal( float duration, bool showMovementTrail, Color tint )
 	{
 		ClearMarkedDeckReveal();
 		MarkedDeckShowMovementTrail = showMovementTrail;
@@ -618,7 +634,7 @@ public sealed class PlayerCombat : Component
 				Overlay = renderer.RenderOptions.Overlay
 			} );
 
-			renderer.Tint = MarkedDeckRevealTint;
+			renderer.Tint = tint;
 			renderer.RenderOptions.Overlay = true;
 		}
 
@@ -720,9 +736,20 @@ public sealed class PlayerCombat : Component
 		Health = MathF.Min( MaxHealth, Health + amount );
 	}
 
-	void ApplyMoveSlow( float multiplier, float duration )
+	public void ApplyMoveSlow( float multiplier, float duration )
 	{
-		MoveSpeedMultiplier = multiplier.Clamp( 0.1f, 1f );
+		if ( !Networking.IsHost || IsDead )
+			return;
+
+		ApplyMoveSpeedMultiplierEffect( multiplier, duration );
+	}
+
+	public void ApplyMoveSpeedMultiplierEffect( float multiplier, float duration )
+	{
+		if ( !Networking.IsHost || IsDead )
+			return;
+
+		MoveSpeedMultiplier = multiplier.Clamp( 0.1f, 1.5f );
 		MoveSlowExpireTime = duration;
 	}
 
@@ -773,6 +800,7 @@ public sealed class PlayerCombat : Component
 		BleedLuckMarkerObject.WorldPosition = GetBleedLuckMarkerPosition();
 		UpdateBleedLuckShadowPosition();
 		UpdateBleedLuckPulse();
+		UpdateBleedLuckWallVisibility();
 	}
 
 	Vector3 GetBleedLuckMarkerPosition()
@@ -805,6 +833,44 @@ public sealed class PlayerCombat : Component
 			return null;
 
 		return BodyRenderer.GetBoneObject( BleedLuckBoneName );
+	}
+
+	void UpdateBleedLuckWallVisibility()
+	{
+		var visible = !IsBleedLuckMarkerBehindWall();
+
+		if ( BleedLuckMarkerRenderer.IsValid() )
+			BleedLuckMarkerRenderer.Enabled = visible;
+
+		if ( BleedLuckShadowRenderer.IsValid() )
+			BleedLuckShadowRenderer.Enabled = visible && BleedLuckShadowEnabled;
+	}
+
+	bool IsBleedLuckMarkerBehindWall()
+	{
+		if ( !BleedLuckHideBehindWalls || !BleedLuckMarkerObject.IsValid() )
+			return false;
+
+		var camera = GetMainCamera();
+		if ( !camera.IsValid() )
+			return false;
+
+		var start = camera.WorldPosition;
+		var end = BleedLuckMarkerObject.WorldPosition;
+		var distance = (end - start).Length;
+		if ( distance <= 1f )
+			return false;
+
+		var trace = Scene.Trace
+			.Ray( start, end )
+			.IgnoreGameObjectHierarchy( GameObject )
+			.WithoutTags( "trigger", "deadplayer" )
+			.Run();
+
+		if ( !trace.Hit )
+			return false;
+
+		return (trace.HitPosition - start).Length < distance - 2f;
 	}
 
 	void EnsureBleedLuckMarker()

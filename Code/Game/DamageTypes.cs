@@ -19,7 +19,8 @@ public enum CharacterId
 {
 	None,
 	Cardveil,
-	ClubBrawler
+	ClubBrawler,
+	Mycell
 }
 
 public enum LoadedHandCard

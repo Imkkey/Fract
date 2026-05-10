@@ -239,6 +239,19 @@ BattleRoyaleHud {
 		opacity: 0.58;
 	}
 
+	.skill-placeholder-icon {
+		width: 80px;
+		height: 80px;
+		border-radius: 6px;
+		z-index: 2;
+		align-items: center;
+		justify-content: center;
+		background-color: rgba(33, 41, 48, 0.88);
+		color: rgba(235, 241, 245, 0.72);
+		font-size: 22px;
+		font-weight: 900;
+	}
+
 	.skill-icon {
 		width: 80px;
 		height: 80px;

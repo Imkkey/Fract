@@ -30,6 +30,10 @@ public sealed class PlayerAttackController : Component
 				{
 					Character.RequestSelectCharacter( CharacterId.ClubBrawler );
 				}
+				else if ( Input.Pressed( "Slot3" ) )
+				{
+					Character.RequestSelectCharacter( CharacterId.Mycell );
+				}
 			}
 
 			return;
@@ -53,6 +57,9 @@ public sealed class PlayerAttackController : Component
 				case CharacterId.ClubBrawler:
 					GetComponent<ClubAttack>()?.TryAttack();
 					break;
+				case CharacterId.Mycell:
+					GetComponent<MycellAttack>()?.TryAttack();
+					break;
 			}
 		}
 
@@ -63,6 +70,19 @@ public sealed class PlayerAttackController : Component
 				case CharacterId.Cardveil:
 					GetComponent<CardAttack>()?.TryShuffleDash();
 					break;
+				case CharacterId.Mycell:
+					GetComponent<MycellAttack>()?.TryMushroomStep();
+					break;
+			}
+		}
+
+		if ( Input.Pressed( "Ability2" ) )
+		{
+			switch ( Character.CurrentCharacter )
+			{
+				case CharacterId.Mycell:
+					GetComponent<MycellAttack>()?.TryRottenHeal();
+					break;
 			}
 		}
 
@@ -72,6 +92,9 @@ public sealed class PlayerAttackController : Component
 			{
 				case CharacterId.Cardveil:
 					GetComponent<CardAttack>()?.TryCycleLoadedHand();
+					break;
+				case CharacterId.Mycell:
+					GetComponent<MycellAttack>()?.TrySporePit();
 					break;
 			}
 		}
