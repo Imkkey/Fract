@@ -20,7 +20,8 @@ public enum CharacterId
 	None,
 	Cardveil,
 	ClubBrawler,
-	Mycell
+	Mycell,
+	Valtryek
 }
 
 public enum LoadedHandCard

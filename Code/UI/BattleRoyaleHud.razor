@@ -25,6 +25,9 @@
 						<button onclick="@(() => LocalCharacter?.RequestSelectCharacter(CharacterId.Mycell))">
 							Mycell
 						</button>
+						<button onclick="@(() => LocalCharacter?.RequestSelectCharacter(CharacterId.Valtryek))">
+							Valtryek
+						</button>
 					</div>
 				</div>
 			}
@@ -267,6 +270,7 @@
 	{
 		CharacterId.ClubBrawler => "Club Brawler",
 		CharacterId.Mycell => "Mycell",
+		CharacterId.Valtryek => "Valtryek",
 		CharacterId.Cardveil => "Cardveil",
 		_ => "Character"
 	};
@@ -281,7 +285,7 @@
 	bool IsPlaceholderPassiveSkill( int index ) => false;
 	string GetPlaceholderSkillSlotClass( int index )
 	{
-		if ( LocalCharacter?.CurrentCharacter == CharacterId.Mycell )
+		if ( LocalCharacter?.CurrentCharacter is CharacterId.Mycell or CharacterId.Valtryek )
 			return "";
 
 		return "locked";
@@ -314,6 +318,9 @@
 		0 when LocalCharacter?.CurrentCharacter == CharacterId.Mycell => "Mushroom Step",
 		1 when LocalCharacter?.CurrentCharacter == CharacterId.Mycell => "Rotten Heal",
 		2 when LocalCharacter?.CurrentCharacter == CharacterId.Mycell => "Spore Pit",
+		0 when LocalCharacter?.CurrentCharacter == CharacterId.Valtryek => "Valtryek Skill 1",
+		1 when LocalCharacter?.CurrentCharacter == CharacterId.Valtryek => "Valtryek Skill 2",
+		2 when LocalCharacter?.CurrentCharacter == CharacterId.Valtryek => "Valtryek Ultimate",
 		0 => $"{CurrentCharacterName} Skill 1",
 		1 => $"{CurrentCharacterName} Skill 2",
 		2 => $"{CurrentCharacterName} Ultimate",
@@ -324,17 +331,24 @@
 		0 when LocalCharacter?.CurrentCharacter == CharacterId.Mycell => "Grow a mushroom under yourself, leap up and forward, and leave a trap behind.",
 		1 when LocalCharacter?.CurrentCharacter == CharacterId.Mycell => "Consume nearby poison clouds to heal. Clouds that damaged enemies heal more.",
 		2 when LocalCharacter?.CurrentCharacter == CharacterId.Mycell => "Create a huge toxic spore zone. Stay inside to keep it alive.",
+		0 when LocalCharacter?.CurrentCharacter == CharacterId.Valtryek => "Coming soon.",
+		1 when LocalCharacter?.CurrentCharacter == CharacterId.Valtryek => "Coming soon.",
+		2 when LocalCharacter?.CurrentCharacter == CharacterId.Valtryek => "Coming soon.",
 		0 => "Active ability placeholder.",
 		1 => "Second ability placeholder.",
 		2 => "Ultimate placeholder.",
 		_ => "Ability placeholder."
 	};
-	string GetPlaceholderSkillBadgeText( int index ) => LocalCharacter?.CurrentCharacter == CharacterId.Mycell && index == 2
+	string GetPlaceholderSkillBadgeText( int index ) => LocalCharacter?.CurrentCharacter == CharacterId.Valtryek && index == 2
+		? "Ultimate"
+		: LocalCharacter?.CurrentCharacter == CharacterId.Valtryek && index is 0 or 1
+			? "Active"
+		: LocalCharacter?.CurrentCharacter == CharacterId.Mycell && index == 2
 		? "Ultimate"
 		: LocalCharacter?.CurrentCharacter == CharacterId.Mycell && index is 0 or 1
 			? "Active"
 		: "Soon";
-	string GetPlaceholderSkillBadgeClass( int index ) => LocalCharacter?.CurrentCharacter == CharacterId.Mycell
+	string GetPlaceholderSkillBadgeClass( int index ) => LocalCharacter?.CurrentCharacter is CharacterId.Mycell or CharacterId.Valtryek
 		? "active"
 		: "locked";
 	bool HasPlaceholderSkillStats( int index ) => LocalCharacter?.CurrentCharacter == CharacterId.Mycell;

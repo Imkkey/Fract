@@ -34,6 +34,10 @@ public sealed class PlayerAttackController : Component
 				{
 					Character.RequestSelectCharacter( CharacterId.Mycell );
 				}
+				else if ( Input.Pressed( "Slot4" ) )
+				{
+					Character.RequestSelectCharacter( CharacterId.Valtryek );
+				}
 			}
 
 			return;
@@ -59,6 +63,9 @@ public sealed class PlayerAttackController : Component
 					break;
 				case CharacterId.Mycell:
 					GetComponent<MycellAttack>()?.TryAttack();
+					break;
+				case CharacterId.Valtryek:
+					GetComponent<ValtryekLightningAttack>()?.TryAttack();
 					break;
 			}
 		}

@@ -37,6 +37,8 @@ public sealed class PlayerCharacter : Component
 		EnsureComponent<ClubAttack>();
 		EnsureComponent<MycellThrowVisual>();
 		EnsureComponent<MycellAttack>();
+		EnsureComponent<ValtryekLightningVisual>();
+		EnsureComponent<ValtryekLightningAttack>();
 
 		var character = CurrentCharacter;
 		if ( AppliedCharacter == character )
@@ -51,7 +53,7 @@ public sealed class PlayerCharacter : Component
 		if ( SelectedCharacter != CharacterId.None )
 			return;
 
-		if ( characterId is not CharacterId.Cardveil and not CharacterId.ClubBrawler and not CharacterId.Mycell )
+		if ( characterId is not CharacterId.Cardveil and not CharacterId.ClubBrawler and not CharacterId.Mycell and not CharacterId.Valtryek )
 			return;
 
 		SelectedCharacter = characterId;
